@@ -30,21 +30,22 @@ export function Confetti() {
       {bursts.map((b) =>
         Array.from({ length: 34 }, (_, k) => {
           const pick = k % 5;
-          const glyph = b.kind === "gold" ? (pick === 0 ? "✉️" : pick === 1 ? "✨" : "🍂") : pick === 0 ? "💧" : "🍃";
+          const kind = b.kind === "gold" ? (pick === 0 ? "env" : pick === 1 ? "glint" : "gold") : pick === 0 ? "drop" : "leaf";
+          const px = 4 * (2 + ((k * 7) % 3)); // whole pixel steps
           return (
             <span
               key={`${b.id}-${k}`}
+              className={`conf conf-${kind}`}
               style={{
                 insetInlineStart: `${(k * 37) % 100}%`,
+                width: kind === "env" ? px * 1.5 : px,
+                height: px,
                 animationDelay: `${(k % 9) * 70}ms`,
                 animationDuration: `${1600 + ((k * 53) % 900)}ms`,
-                fontSize: `${18 + ((k * 7) % 16)}px`,
                 ["--drift" as string]: `${((k * 29) % 120) - 60}px`,
-                ["--spin" as string]: `${((k * 71) % 540) - 270}deg`,
+                ["--spin" as string]: `${(((k * 71) % 4) - 2) * 90}deg`,
               }}
-            >
-              {glyph}
-            </span>
+            />
           );
         }),
       )}

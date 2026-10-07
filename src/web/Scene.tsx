@@ -1,89 +1,11 @@
-import { useEffect, useId, useMemo, useState } from "react";
-import { stratify, tree as d3tree } from "d3-hierarchy";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TreeNode } from "../shared/api";
-import { speciesById } from "../shared/game";
+import { C, Pix } from "./pixel/canvas";
+import { GOLD, SPECIES_PIX, paint, type Anchors, type ArtNode } from "./pixel/scene";
 
-// The game's one picture, an Israeli election day in paper and cardboard: Jerusalem hills under a
-// sky that follows the hour, the Knesset on the horizon, and the player's tree growing out of a
-// cardboard ballot box. Its leaves are blank paper ballot slips (never letters: party symbols are
-// letters): tinted by species when someone joined, gold once they voted. Blue envelopes fly into
-// the slot as votes land. Decorations grow with the level.
-
-const W = 800;
-const H = 600;
-const CX = 400;
-const BOX_TOP = 468; // the ballot box's lid
-const CY = 436; // where the trunk splits into the crown
-const MAX_R = 300;
-const SPAN_FROM = Math.PI * 1.08;
-const SPAN_TO = Math.PI * 1.92;
-
-type N = TreeNode & { ghost?: boolean };
-type Placed = { i: number; x: number; y: number; a: number; r: number; depth: number; v: boolean; n?: string; ghost?: boolean; parent?: Placed };
-
-const polar = (a: number, r: number): [number, number] => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
-
-function layout(nodes: N[], maxR: number) {
-  const root = stratify<N>()
-    .id((d) => String(d.i))
-    .parentId((d) => (d.p == null ? null : String(d.p)))(nodes);
-  const ring = maxR / Math.max(root.height, 2.2);
-  d3tree<N>()
-    .size([SPAN_TO - SPAN_FROM, 1])
-    .separation((a, b) => (a.parent === b.parent ? 1 : 1.6) / Math.max(1, a.depth))(root);
-  const placed: Placed[] = [];
-  const byId = new Map<string, Placed>();
-  root.each((d) => {
-    const a = SPAN_FROM + (d.x ?? 0);
-    const r = d.depth * ring;
-    const [x, y] = polar(a, r);
-    const p: Placed = { i: d.data.i, x, y, a, r, depth: d.depth, v: d.data.v, n: d.data.n, ghost: d.data.ghost, parent: d.parent ? byId.get(d.parent.id!) : undefined };
-    byId.set(d.id!, p);
-    placed.push(p);
-  });
-  return placed;
-}
-
-function branch(p: Placed) {
-  const par = p.parent!;
-  const mid = (par.r + p.r) / 2;
-  const [x1, y1] = par.depth === 0 ? [CX, CY - p.r * 0.5] : polar(par.a, mid);
-  const [x2, y2] = polar(p.a, mid);
-  const f = (n: number) => n.toFixed(1);
-  return `M${f(par.x)},${f(par.y)} C${f(x1)},${f(y1)} ${f(x2)},${f(y2)} ${f(p.x)},${f(p.y)}`;
-}
-
-// ---- sky by hour ----
-
-const SKY: [number, string, string][] = [
-  [0, "#0b1a3a", "#1d2f5c"],
-  [5, "#14244d", "#3b3f75"],
-  [6, "#5a6db3", "#f2a07b"],
-  [7.5, "#7fb1e8", "#f6d8b0"],
-  [10, "#5fa3ec", "#cfe6fb"],
-  [16, "#6aa9ea", "#d8ecfb"],
-  [18, "#5b7fc4", "#f5b27a"],
-  [19.3, "#3a3f7a", "#e07a6a"],
-  [20.5, "#16244d", "#33417a"],
-  [24, "#0b1a3a", "#1d2f5c"],
-];
-function mix(a: string, b: string, t: number) {
-  const pa = [1, 3, 5].map((k) => parseInt(a.slice(k, k + 2), 16));
-  const pb = [1, 3, 5].map((k) => parseInt(b.slice(k, k + 2), 16));
-  return "#" + pa.map((v, k) => Math.round(v + (pb[k] - v) * t).toString(16).padStart(2, "0")).join("");
-}
-function skyAt(h: number): [string, string] {
-  for (let k = 0; k < SKY.length - 1; k++) {
-    const [h0, t0, b0] = SKY[k];
-    const [h1, t1, b1] = SKY[k + 1];
-    if (h >= h0 && h <= h1) {
-      const t = (h - h0) / (h1 - h0);
-      return [mix(t0, t1, t), mix(b0, b1, t)];
-    }
-  }
-  return [SKY[0][1], SKY[0][2]];
-}
-const isNight = (h: number) => h < 5.6 || h > 20.2;
+// The election-day scene in pixel art. A static layer is painted once per size, hour and tree;
+// a light overlay animates at 8 fps (gold sparkles, clouds, the flag, butterflies, the envelope).
+// The canvas runs at an integer scale (2-6 screen pixels per art pixel) so every pixel is square.
 
 export function israelHour() {
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
@@ -101,14 +23,8 @@ export function useIsraelHour() {
   return h;
 }
 
-// ---- the paper slip ----
-
-// A blank ballot slip pointing along +x, with a folded corner. Drawn around its stem at (0,0).
-const SLIP = "M2,-8 L24,-8 L28,-4 L28,8 L2,8 Z";
-const FOLD = "M24,-8 L24,-4 L28,-4";
-
-// A per-index wobble so slips don't sit like a grid.
-const wobble = (i: number) => (((i * 47) % 23) - 11) * 1.4;
+const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ART_W = 180; // target width in art pixels
 
 type Props = {
   nodes: TreeNode[];
@@ -118,10 +34,10 @@ type Props = {
   levelIndex?: number;
   votedAt?: (i: number) => boolean;
   showNames?: boolean;
-  ghosts?: number; // empty invite slots drawn as dashed slips
-  ballots?: number; // envelopes already in the box; a rise animates a new one in
+  ghosts?: number;
+  ballots?: number;
   stamps?: { voted?: boolean; witnessed?: boolean };
-  crown?: number; // 0..1, shrinks the crown to leave sky for a title
+  crown?: number;
   animate?: boolean;
   className?: string;
 };
@@ -141,256 +57,253 @@ export function Scene({
   animate = true,
   className = "",
 }: Props) {
-  const gid = useId().replace(/:/g, "");
+  const wrap = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
   const now = useIsraelHour();
   const h = hour ?? now;
-  const sp = speciesById(species);
+  const [size, setSize] = useState<{ w: number; h: number; s: number } | null>(null);
+  const [anchors, setAnchors] = useState<Anchors | null>(null);
+  const bg = useRef<HTMLCanvasElement | null>(null);
 
-  const withGhosts = useMemo<N[]>(() => {
-    if (!ghosts) return nodes;
-    return [...nodes, ...Array.from({ length: ghosts }, (_, k) => ({ i: 100_000 + k, p: 0, v: false, ghost: true }))];
-  }, [nodes, ghosts]);
-  const placed = useMemo(() => layout(withGhosts, MAX_R * crown), [withGhosts, crown]);
+  const all = useMemo<ArtNode[]>(() => (ghosts ? [...nodes, ...Array.from({ length: ghosts }, (_, k) => ({ i: 100_000 + k, p: 0, v: false, ghost: true }))] : nodes), [nodes, ghosts]);
+  // votedAt changes identity every render in the demo; key the paint on what it answers instead.
+  const votedKey = votedAt ? all.map((n) => (votedAt(n.i) ? 1 : 0)).join("") : "";
 
-  const voted = (p: Placed) => !p.ghost && (votedAt ? votedAt(p.i) : p.v);
-  const direct = placed.filter((p) => p.depth === 1 && !p.ghost);
-  const n = placed.length;
-  const slipScale = n > 160 ? 0.62 : n > 80 ? 0.78 : n > 40 ? 0.95 : 1.2;
-
-  const [top, bottom] = skyAt(h);
-  const night = isNight(h);
-  const sunT = Math.min(1, Math.max(0, (h - 6) / 13.5));
-  const sunX = 720 - sunT * 640;
-  const sunY = 300 - Math.sin(sunT * Math.PI) * 230;
-  const moonT = Math.min(1, h >= 19 ? (h - 19) / 11 : (h + 5) / 11);
-  const moonX = 700 - moonT * 600;
-  const moonY = 260 - Math.sin(moonT * Math.PI) * 190;
-
-  // A new envelope flies in whenever the count rises.
-  const [drop, setDrop] = useState(0);
-  const [seen, setSeen] = useState(ballots);
+  // Size: pick an integer scale, then the art resolution that fills the box.
   useEffect(() => {
-    if (ballots > seen) setDrop((d) => d + 1);
-    setSeen(ballots);
-  }, [ballots, seen]);
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const s = Math.max(2, Math.round(r.width / ART_W));
+      setSize({ w: Math.ceil(r.width / s), h: Math.ceil(r.height / s), s });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  const kraft = night ? "oklch(0.5 0.05 70)" : "oklch(0.72 0.08 70)";
-  const kraftDark = night ? "oklch(0.42 0.05 65)" : "oklch(0.6 0.08 65)";
+  // Paint the static layer.
+  useEffect(() => {
+    if (!size) return;
+    const px = new Pix(size.w, size.h);
+    const a = paint(px, {
+      nodes: all,
+      voted: (i, v) => (votedAt ? votedAt(i) : v),
+      hour: h,
+      species,
+      levelIndex,
+      stamps,
+      crown,
+    });
+    const off = document.createElement("canvas");
+    off.width = size.w;
+    off.height = size.h;
+    off.getContext("2d")!.putImageData(px.img, 0, 0);
+    bg.current = off;
+    setAnchors(a);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size, all, votedKey, Math.floor(h * 2), species, levelIndex, stamps?.voted, stamps?.witnessed, crown]);
+
+  // A new envelope drops whenever the count rises.
+  const [drop, setDrop] = useState(0);
+  const lastBallots = useRef(ballots);
+  useEffect(() => {
+    if (ballots > lastBallots.current) setDrop((d) => d + 1);
+    lastBallots.current = ballots;
+  }, [ballots]);
+
+  // Animate only while the scene is on screen.
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // The overlay loop.
+  useEffect(() => {
+    const cv = canvas.current;
+    if (!cv || !size || !anchors || !bg.current) return;
+    cv.width = size.w;
+    cv.height = size.h;
+    const g = cv.getContext("2d")!;
+    g.imageSmoothingEnabled = false;
+    const still = !animate || reduced() || !visible;
+    let frame = 0;
+    let timer = 0;
+    const dot = (x: number, y: number, c: string) => {
+      g.fillStyle = c;
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    };
+    const draw = () => {
+      g.drawImage(bg.current!, 0, 0);
+      const t = frame;
+      // clouds drift by whole pixels
+      if (anchors.mood !== "night") {
+        const cw = size.w;
+        [
+          [0.18, 0.16, 0],
+          [0.62, 0.1, 37],
+        ].forEach(([fx, fy, off]) => {
+          const x = ((fx * cw + (t + off) / 6) % (cw + 30)) - 15;
+          const y = Math.round(fy * size.h);
+          g.fillStyle = C.white;
+          g.fillRect(Math.round(x), y, 12, 2);
+          g.fillRect(Math.round(x) + 3, y - 1, 6, 1);
+          g.fillStyle = anchors.mood === "golden" ? C.blush : C.pale;
+          g.fillRect(Math.round(x) + 1, y + 2, 11, 1);
+        });
+      }
+      // gold clusters glint, a few at a time
+      anchors.gold.forEach(([x, y], k) => {
+        const phase = (t + k * 7) % 24;
+        if (phase === 0 || phase === 1) {
+          dot(x, y, C.white);
+          if (phase === 0) {
+            dot(x - 1, y, GOLD.hi);
+            dot(x + 1, y, GOLD.hi);
+            dot(x, y - 1, GOLD.hi);
+            dot(x, y + 1, GOLD.hi);
+          }
+        }
+      });
+      // butterflies (level 2+)
+      if (levelIndex >= 2 && anchors.mood !== "night") {
+        [0, 1].forEach((b) => {
+          const p = (t / 40 + b * 0.5) % 1;
+          const x = size.w * (0.15 + 0.7 * p);
+          const y = size.h * (0.62 + 0.06 * Math.sin(p * 12 + b));
+          const c = b ? C.goldLight : C.white;
+          const open = t % 2 === 0;
+          dot(x, y, C.ink);
+          dot(x - 1, y - (open ? 1 : 0), c);
+          dot(x + 1, y - (open ? 1 : 0), c);
+        });
+      }
+    };
+    draw();
+    if (still) return;
+    const tick = () => {
+      if (!document.hidden) {
+        frame++;
+        draw();
+      }
+      timer = window.setTimeout(tick, 125);
+    };
+    timer = window.setTimeout(tick, 125);
+    return () => clearTimeout(timer);
+  }, [size, anchors, animate, levelIndex, visible]);
 
   return (
-    <svg className={`scene ${animate ? "scene-anim" : ""} ${className}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} preserveAspectRatio="xMidYMax slice">
-      <defs>
-        <linearGradient id={`sky${gid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={top} />
-          <stop offset="1" stopColor={bottom} />
-        </linearGradient>
-        <radialGradient id={`sun${gid}`}>
-          <stop offset="0.35" stopColor="#fff6d6" />
-          <stop offset="0.6" stopColor="#ffd36b" stopOpacity="0.7" />
-          <stop offset="1" stopColor="#ffd36b" stopOpacity="0" />
-        </radialGradient>
-        <pattern id={`corr${gid}`} width="6" height="6" patternUnits="userSpaceOnUse">
-          <rect width="6" height="6" fill={kraft} />
-          <rect width="2" height="6" fill={kraftDark} opacity="0.35" />
-        </pattern>
-        <g id={`slip${gid}`}>
-          <path d={SLIP} />
-          <path d={FOLD} fill="none" stroke="oklch(0.3 0.04 262 / 0.35)" strokeWidth="1" />
-        </g>
-      </defs>
+    <div ref={wrap} className={`scene ${className}`} role="img" aria-label={label}>
+      {size && (
+        <div className="scene-stage" style={{ width: size.w * size.s, height: size.h * size.s }}>
+          <canvas ref={canvas} className="scene-canvas" aria-hidden="true" />
+          {anchors && <VectorLayer a={anchors} w={size.w} h={size.h} stamps={stamps} drop={drop} />}
+          {anchors && (
+            <div className="scene-names" aria-hidden="true">
+              {anchors.names
+                .filter((n) => n.me || (showNames && anchors.names.length <= 13))
+                .map((n, k) => (
+                  <span key={k} className={n.me ? (n.gold ? "me gold" : "me") : undefined} style={{ left: n.x * size.s, top: n.y * size.s }}>
+                    {n.text}
+                  </span>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-      {/* sky, stars, sun or moon, clouds */}
-      <rect width={W} height={H} fill={`url(#sky${gid})`} />
-      <g className="stars" style={{ opacity: night ? 1 : 0 }}>
-        {[[90, 60], [180, 120], [260, 40], [520, 70], [610, 130], [700, 50], [350, 90], [460, 30], [140, 180], [660, 200]].map(([x, y], k) => (
-          <circle key={k} cx={x} cy={y} r={k % 3 ? 1.4 : 2} fill="#fff" className="twinkle" style={{ animationDelay: `${k * 0.37}s` }} />
-        ))}
-      </g>
-      {!night && <circle cx={sunX} cy={sunY} r="70" fill={`url(#sun${gid})`} />}
-      {night && (
-        <g transform={`translate(${moonX},${moonY})`}>
-          <circle r="22" fill="#f4f1e3" />
-          <circle r="22" cx="9" cy="-6" fill={top} />
+// The vector layer: crisp objects on the pixel world, in the same palette and coordinates, with
+// line weights of one world pixel so they sit in the scene instead of floating over it.
+function VectorLayer({ a, w, h, stamps, drop }: { a: Anchors; w: number; h: number; stamps?: { voted?: boolean; witnessed?: boolean }; drop: number }) {
+  const { x, y, w: bw, h: bh } = a.box;
+  const cx = x + bw / 2;
+  return (
+    <svg className="scene-vector" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      {a.flag && (
+        <g transform={`translate(${a.flag[0] + 0.5},${a.flag[1]})`}>
+          <g className="v-flag">
+            <rect width="11" height="8" fill="#ffffff" stroke="#2e222f" strokeWidth="0.5" />
+            <rect y="1" width="11" height="1.1" fill="#4d65b4" />
+            <rect y="5.9" width="11" height="1.1" fill="#4d65b4" />
+            <path d="M5.5,2.55 L6.75,4.7 L4.25,4.7Z M5.5,5.45 L4.25,3.3 L6.75,3.3Z" fill="none" stroke="#4d65b4" strokeWidth="0.42" strokeLinejoin="round" />
+          </g>
         </g>
       )}
-      <g fill="#fff" opacity={night ? 0.12 : 0.85}>
-        <g className="cloud c1">
-          <ellipse cx="140" cy="110" rx="46" ry="16" />
-          <ellipse cx="170" cy="98" rx="30" ry="18" />
-        </g>
-        <g className="cloud c2">
-          <ellipse cx="560" cy="80" rx="54" ry="15" />
-          <ellipse cx="590" cy="70" rx="28" ry="16" />
-        </g>
-      </g>
 
-      {/* far hills with the Knesset and its flag */}
-      <path d="M0,380 C120,330 220,350 320,340 C430,328 520,300 640,318 C710,328 760,320 800,312 L800,600 L0,600Z" fill="oklch(0.74 0.04 250)" opacity={night ? 0.55 : 0.9} />
-      <g transform="translate(590,282)" aria-hidden="true">
-        <g fill={night ? "oklch(0.42 0.04 250)" : "oklch(0.6 0.04 250)"}>
-          <rect x="0" y="16" width="92" height="22" />
-          <rect x="-4" y="12" width="100" height="5" />
-          <rect x="-10" y="38" width="112" height="6" />
+      {/* empty invite slots: dashed gold circles with a plus, waiting for a friend */}
+      {a.ghosts.map(([gx, gy, r], k) => (
+        <g key={k} transform={`translate(${gx},${gy})`} className="v-ghost" style={{ animationDelay: `${k * 0.3}s` }}>
+          <circle r={Math.max(4, r + 1.5)} fill="rgb(255 255 255 / 0.55)" stroke="#f79617" strokeWidth="0.8" strokeDasharray="1.6 1.2" />
+          <path d="M-1.8,0 H1.8 M0,-1.8 V1.8" stroke="#f79617" strokeWidth="0.9" strokeLinecap="round" />
         </g>
-        {Array.from({ length: 9 }, (_, k) => (
-          <rect key={k} x={4 + k * 10.2} y="17" width="3" height="21" fill={night ? "oklch(0.3 0.03 250)" : "oklch(0.52 0.04 250)"} />
+      ))}
+
+      {/* the cardboard ballot box */}
+      <g strokeLinejoin="round">
+        <path d={`M${x + bw},${y + 3} L${x + bw + 4},${y + 1} L${x + bw + 4},${y + bh - 2} L${x + bw},${y + bh}Z`} fill="#cd683d" stroke="#2e222f" strokeWidth="1" />
+        <rect x={x} y={y + 3} width={bw} height={bh - 3} fill="#e6904e" stroke="#2e222f" strokeWidth="1" />
+        {Array.from({ length: Math.floor(bw / 3) - 1 }, (_, k) => (
+          <line key={k} x1={x + 3 + k * 3} y1={y + 5} x2={x + 3 + k * 3} y2={y + bh - 1} stroke="#cd683d" strokeWidth="0.5" />
         ))}
-        <line x1="46" y1="12" x2="46" y2="-14" stroke={night ? "oklch(0.42 0.04 250)" : "oklch(0.5 0.03 250)"} strokeWidth="1.5" />
-        <g transform="translate(46,-14)" className="flag">
-          <rect width="16" height="11" fill="#fff" />
-          <rect y="1.5" width="16" height="1.6" fill="var(--flag)" />
-          <rect y="7.9" width="16" height="1.6" fill="var(--flag)" />
-        </g>
-      </g>
-
-      {/* terraced middle hills */}
-      <path d="M0,430 C140,392 260,410 380,400 C520,388 640,372 800,392 L800,600 L0,600Z" fill={night ? "oklch(0.36 0.05 140)" : "oklch(0.66 0.08 130)"} />
-      <g stroke={night ? "oklch(0.3 0.04 140)" : "oklch(0.58 0.07 125)"} strokeWidth="2" fill="none" opacity="0.7">
-        <path d="M20,446 C150,414 260,428 380,420 C520,410 640,396 790,414" />
-        <path d="M10,470 C150,440 260,452 380,446 C520,436 640,424 790,440" />
-      </g>
-      {levelIndex >= 4 &&
-        [90, 160, 690, 740, 230].slice(0, levelIndex >= 5 ? 5 : 3).map((x, k) => (
-          <g key={x} transform={`translate(${x},${424 - (k % 2) * 8}) scale(${0.7 + (k % 3) * 0.12})`}>
-            <rect x="-2" y="0" width="4" height="16" fill="var(--bark)" />
-            <circle cy="-6" r="14" fill={night ? "oklch(0.4 0.07 145)" : "oklch(0.55 0.11 145)"} />
-          </g>
-        ))}
-
-      {/* the front hill */}
-      <path d="M0,520 C160,478 300,486 400,486 C520,486 640,474 800,500 L800,600 L0,600Z" fill={night ? "oklch(0.32 0.06 135)" : "oklch(0.6 0.11 132)"} />
-      <path d="M0,566 C200,536 600,546 800,554 L800,600 L0,600Z" fill={night ? "oklch(0.27 0.05 135)" : "oklch(0.54 0.11 132)"} />
-
-      {/* anemones, Israel's red winter flower (level 1+) */}
-      {levelIndex >= 1 &&
-        [[120, 528], [160, 540], [250, 512], [560, 518], [640, 532], [700, 520], [300, 556], [520, 560]].map(([x, y], k) => (
-          <g key={k} transform={`translate(${x},${y})`}>
-            <line y2="10" stroke="oklch(0.45 0.1 140)" strokeWidth="1.5" />
-            <circle r="5" fill={k % 3 === 2 ? "#f5f0e6" : "var(--anemone)"} />
-            <circle r="1.8" fill="#2a1a2e" />
-          </g>
-        ))}
-
-      {/* trunk, rising out of the ballot box's slot */}
-      <path d={`M${CX - 12},${BOX_TOP + 4} C${CX - 8},${CY + 18} ${CX - 6},${CY + 6} ${CX - 4},${CY} L${CX + 4},${CY} C${CX + 6},${CY + 6} ${CX + 8},${CY + 18} ${CX + 12},${BOX_TOP + 4} Z`} fill="var(--bark)" />
-
-      {/* the crown sways a little */}
-      <g className="crown">
-        <g fill="none" stroke="var(--bark)" strokeLinecap="round">
-          {placed
-            .filter((p) => p.parent)
-            .map((p, k) => (
-              <path key={p.i} d={branch(p)} strokeWidth={Math.max(1.4, 8 - p.depth * 1.8)} className={p.ghost ? "branch ghost-branch" : "branch"} style={{ animationDelay: `${Math.min(k * 12, 900)}ms` }} />
-            ))}
-        </g>
-        {placed
-          .filter((p) => p.depth > 0)
-          .map((p, k) => {
-            const on = voted(p);
-            const deg = (p.a * 180) / Math.PI + wobble(p.i);
-            return (
-              <g key={p.i} transform={`translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`} className={"slip" + (on ? " slip-on" : "") + (p.ghost ? " slip-ghost" : "")} style={{ animationDelay: `${200 + Math.min(k * 14, 1100)}ms` }}>
-                <g transform={`rotate(${deg.toFixed(1)}) scale(${(p.depth === 1 ? 1.12 : 1) * slipScale})`}>
-                  {p.ghost ? (
-                    <path d={SLIP} fill="oklch(1 0 0 / 0.4)" stroke="var(--ink)" strokeWidth="1.4" strokeDasharray="3 3" />
-                  ) : (
-                    <use href={`#slip${gid}`} fill={on ? "var(--gold)" : sp.leaf} stroke={on ? "var(--gold-deep)" : sp.edge} strokeWidth="1.3" />
-                  )}
-                </g>
-              </g>
-            );
-          })}
-        {/* a hoopoe, Israel's national bird, on the first branch (level 3+) */}
-        {levelIndex >= 3 && direct[0] && (
-          <g transform={`translate(${((direct[0].x + CX) / 2).toFixed(1)},${((direct[0].y + CY) / 2 - 10).toFixed(1)})`} className="hoopoe" aria-hidden="true">
-            <ellipse rx="11" ry="7" fill="oklch(0.72 0.11 60)" />
-            <path d="M-6,-4 L-12,-14 L-8,-6 L-4,-16 L-2,-6 L2,-15 L1,-5Z" fill="oklch(0.72 0.11 60)" stroke="#2a2a2a" strokeWidth="0.6" />
-            <path d="M3,0 L14,2 L3,4" fill="#2a2a2a" />
-            <path d="M-11,1 L-2,1 L-6,6Z" fill="#2a2a2a" />
-            <path d="M-9,2 L-4,2" stroke="#fff" strokeWidth="1.2" />
-            <circle cx="5" cy="-2" r="1.2" fill="#111" />
-          </g>
-        )}
-      </g>
-
-      {showNames &&
-        direct.length <= 12 &&
-        direct.map((p) => {
-          const [lx, ly] = polar(p.a, p.r + 26 + 16 * slipScale);
-          return (
-            <text key={`n${p.i}`} x={lx} y={ly} className="tree-name" textAnchor="middle" dominantBaseline="middle">
-              {p.n}
-            </text>
-          );
-        })}
-
-      {/* butterflies (level 2+) */}
-      {levelIndex >= 2 &&
-        [0, 1].map((k) => (
-          <g key={k} className={`butterfly b${k}`} aria-hidden="true">
-            <path d="M0,0 C-8,-10 -14,-2 -2,2 C-12,6 -6,12 0,2 C6,12 12,6 2,2 C14,-2 8,-10 0,0Z" fill={k ? "oklch(0.8 0.14 85)" : "var(--flag-soft)"} stroke="var(--ink)" strokeWidth="0.6" />
-          </g>
-        ))}
-
-      {/* the cardboard ballot box: the tree's planter */}
-      <g className="box">
-        <path d={`M${CX - 70},${BOX_TOP + 10} L${CX + 70},${BOX_TOP + 10} L${CX + 78},${BOX_TOP + 104} L${CX - 78},${BOX_TOP + 104} Z`} fill={`url(#corr${gid})`} stroke="var(--ink)" strokeWidth="2.5" strokeLinejoin="round" />
-        <rect x={CX - 76} y={BOX_TOP} width="152" height="14" rx="3" fill="var(--flag)" stroke="var(--ink)" strokeWidth="2.5" />
-        <rect x={CX - 26} y={BOX_TOP + 4} width="52" height="5" rx="2.5" fill="var(--ink)" />
-        <rect x={CX - 52} y={BOX_TOP + 36} width="104" height="38" rx="4" fill="#fbfaf6" stroke="var(--ink)" strokeWidth="1.8" />
-        <rect x={CX - 52} y={BOX_TOP + 41} width="104" height="3" fill="var(--flag)" />
-        <rect x={CX - 52} y={BOX_TOP + 66} width="104" height="3" fill="var(--flag)" />
-        <text x={CX} y={BOX_TOP + 58} textAnchor="middle" className="box-label">
-          {ballots > 0 ? `קלפי · ${ballots}` : "קלפי"}
+        <path d={`M${x - 1},${y + 3} L${x + 3},${y} L${x + bw + 4},${y} L${x + bw},${y + 3}Z`} fill="#4d65b4" stroke="#2e222f" strokeWidth="1" />
+        <rect x={x - 1} y={y + 3} width={bw + 1} height="2" fill="#484a77" stroke="#2e222f" strokeWidth="1" />
+        <rect x={cx - 6} y={y + 1.1} width="13" height="1.1" fill="#2e222f" />
+        <rect x={x + 6} y={y + 8} width={bw - 12} height="10" fill="#ffffff" stroke="#2e222f" strokeWidth="0.6" />
+        <rect x={x + 6} y={y + 9.2} width={bw - 12} height="0.9" fill="#4d65b4" />
+        <rect x={x + 6} y={y + 15.9} width={bw - 12} height="0.9" fill="#4d65b4" />
+        <text x={cx} y={y + 14.4} textAnchor="middle" className="v-label">
+          קלפי
         </text>
-        {stamps?.voted && (
-          <g transform={`translate(${CX - 44},${BOX_TOP + 86}) rotate(-12)`} className="stamp">
-            <rect x="-34" y="-12" width="68" height="24" rx="5" fill="none" stroke="var(--flag)" strokeWidth="2.5" />
-            <text textAnchor="middle" dominantBaseline="central" className="stamp-text">
-              הצבעתי
-            </text>
-          </g>
-        )}
-        {stamps?.witnessed && (
-          <g transform={`translate(${CX + 44},${BOX_TOP + 88}) rotate(9)`} className="stamp">
-            <circle r="17" fill="none" stroke="var(--anemone)" strokeWidth="2.5" />
-            <text textAnchor="middle" dominantBaseline="central" className="stamp-text stamp-red">
-              עד
-            </text>
-          </g>
-        )}
       </g>
-
-      {/* a blue envelope flies into the slot */}
+      {stamps?.voted && (
+        <g transform={`translate(${x + 7},${y + bh - 2.5}) rotate(-10)`} className="v-stamp">
+          <rect x="-7" y="-2.6" width="14" height="5.2" rx="1" fill="none" stroke="#b33831" strokeWidth="0.6" />
+          <text textAnchor="middle" y="1.3" className="v-stamp-text">
+            הצבעתי
+          </text>
+        </g>
+      )}
+      {stamps?.witnessed && (
+        <g transform={`translate(${x + bw - 5},${y + bh - 3.5}) rotate(12)`} className="v-stamp">
+          <circle r="3.4" fill="none" stroke="#b33831" strokeWidth="0.6" />
+          <text textAnchor="middle" y="1.2" className="v-stamp-text">
+            עד
+          </text>
+        </g>
+      )}
       {drop > 0 && (
-        <g key={drop} className="envelope" aria-hidden="true">
-          <g transform={`translate(${CX - 15},${BOX_TOP - 2})`}>
-            <rect width="30" height="20" rx="2" fill="var(--flag)" stroke="var(--ink)" strokeWidth="1.4" />
-            <path d="M0,0 L15,11 L30,0" fill="none" stroke="#fff" strokeWidth="1.3" />
+        <g key={drop} transform={`translate(${cx - 4},${y - 4})`}>
+          <g className="v-envelope">
+            <rect width="8" height="5" fill="#4d65b4" stroke="#2e222f" strokeWidth="0.5" />
+            <path d="M0,0 L4,2.8 L8,0" fill="none" stroke="#8fd3ff" strokeWidth="0.5" />
           </g>
         </g>
       )}
-
-      {/* you, where the crown begins */}
-      <g transform={`translate(${CX},${CY})`}>
-        <circle r="20" fill={placed[0] && voted(placed[0]) ? "var(--gold)" : "var(--flag)"} stroke="#fff" strokeWidth="3" />
-        <text className="tree-me" textAnchor="middle" dominantBaseline="central">
-          אני
-        </text>
-      </g>
     </svg>
   );
 }
 
-/** A small slip in a species' colours, for the species picker and the podium. */
+// A 9x9 pixel leaf, in a species' shades or in gold.
+const LEAF_SPRITE = ["....hh...", "...hll...", "..hllmm..", ".hllmmm..", ".lmmmmd..", "..mmmdd..", "..dmdd...", ".d.dd....", "d........"];
+
 export function LeafChip({ species, size = 34, gold = false }: { species: string; size?: number; gold?: boolean }) {
-  const sp = speciesById(species);
+  const s = gold ? GOLD : (SPECIES_PIX[species] ?? SPECIES_PIX.olive);
+  const key: Record<string, string> = { h: s.hi, l: s.light, m: s.mid, d: s.deep };
+  const rects: { x: number; y: number; c: string }[] = [];
+  LEAF_SPRITE.forEach((row, y) => [...row].forEach((ch, x) => key[ch] && rects.push({ x, y, c: key[ch] })));
   return (
-    <svg width={size} height={size} viewBox="-2 -14 32 28" aria-hidden="true">
-      <g transform="rotate(-18 14 0)">
-        <path d={SLIP} fill={gold ? "var(--gold)" : sp.leaf} stroke={gold ? "var(--gold-deep)" : sp.edge} strokeWidth="1.6" />
-        <path d={FOLD} fill="none" stroke="oklch(0.3 0.04 262 / 0.4)" strokeWidth="1.2" />
-      </g>
+    <svg width={size} height={size} viewBox="0 0 9 9" shapeRendering="crispEdges" aria-hidden="true" className="leafchip">
+      {rects.map((r, k) => (
+        <rect key={k} x={r.x} y={r.y} width="1" height="1" fill={r.c} />
+      ))}
     </svg>
   );
 }

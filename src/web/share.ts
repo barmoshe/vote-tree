@@ -115,7 +115,7 @@ export function voteIcs(plan: { when: string; how: string; with: string }, looku
     `DTSTAMP:${stamp}`,
     `DTSTART:20261027T${start}Z`,
     `DTEND:20261027T${end}Z`,
-    "SUMMARY:הולכים להצביע 🗳️",
+    "SUMMARY:הולכים להצביע",
     `DESCRIPTION:${desc}`,
     "BEGIN:VALARM",
     "TRIGGER:-PT1H",

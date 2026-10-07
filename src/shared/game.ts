@@ -11,12 +11,12 @@ export const POINTS = {
 } as const;
 
 export const LEVELS = [
-  { min: 0, name: "זרע", icon: "🌰" },
-  { min: 5, name: "נבט", icon: "🌱" },
-  { min: 20, name: "שתיל", icon: "🌿" },
-  { min: 50, name: "עץ", icon: "🌳" },
-  { min: 150, name: "חורשה", icon: "🏞️" },
-  { min: 400, name: "יער", icon: "🌲" },
+  { min: 0, name: "זרע", icon: "seed" },
+  { min: 5, name: "נבט", icon: "sprout" },
+  { min: 20, name: "שתיל", icon: "sapling" },
+  { min: 50, name: "עץ", icon: "tree" },
+  { min: 150, name: "חורשה", icon: "grove" },
+  { min: 400, name: "יער", icon: "forest" },
 ] as const;
 
 export function level(points: number) {
@@ -34,12 +34,12 @@ export function level(points: number) {
 
 // Tree species: cosmetic, each unlocked at a level. Gold always means "voted", whatever the species.
 export const SPECIES = [
-  { id: "olive", name: "זית", level: 0, leaf: "oklch(0.72 0.07 140)", edge: "oklch(0.52 0.07 145)", shape: "slim" },
-  { id: "fig", name: "תאנה", level: 1, leaf: "oklch(0.7 0.15 140)", edge: "oklch(0.5 0.13 145)", shape: "broad" },
-  { id: "almond", name: "שקד", level: 2, leaf: "oklch(0.9 0.06 350)", edge: "oklch(0.7 0.11 350)", shape: "blossom" },
-  { id: "oak", name: "אלון", level: 3, leaf: "oklch(0.58 0.12 150)", edge: "oklch(0.42 0.1 150)", shape: "broad" },
-  { id: "pomegranate", name: "רימון", level: 4, leaf: "oklch(0.66 0.14 135)", edge: "oklch(0.55 0.19 25)", shape: "slim" },
-  { id: "cedar", name: "ארז", level: 5, leaf: "oklch(0.5 0.09 175)", edge: "oklch(0.36 0.07 180)", shape: "needle" },
+  { id: "olive", name: "זית", level: 0, leaf: "#9AA77A", edge: "#5E6B45" },
+  { id: "fig", name: "תאנה", level: 1, leaf: "#6F9A4F", edge: "#3F6B2E" },
+  { id: "almond", name: "שקד", level: 2, leaf: "#F7E3E8", edge: "#C98A9B" },
+  { id: "oak", name: "אלון", level: 3, leaf: "#5E8A4B", edge: "#33562A" },
+  { id: "pomegranate", name: "רימון", level: 4, leaf: "#82A85C", edge: "#4A6B32" },
+  { id: "cedar", name: "ארז", level: 5, leaf: "#3F6E5A", edge: "#244538" },
 ] as const;
 
 export type SpeciesId = (typeof SPECIES)[number]["id"];
@@ -72,17 +72,17 @@ export function pointsOf(s: Pick<Stats, "voted" | "planned" | "confirmed" | "wat
 }
 
 export const ACHIEVEMENTS: { id: string; icon: string; title: string; hint: string; done: (s: Stats) => boolean }[] = [
-  { id: "seed", icon: "🌰", title: "זרע ראשון", hint: "הצטרפות לעץ", done: () => true },
-  { id: "plan", icon: "🗺️", title: "יש תוכנית", hint: "תוכנית הצבעה: מתי, איך ועם מי", done: (s) => s.planned },
-  { id: "water3", icon: "💧", title: "שלושה ימי השקיה", hint: "השקיה שלושה ימים ברצף", done: (s) => s.streak >= 3 },
-  { id: "water7", icon: "🔥", title: "שבוע של השקיה", hint: "השקיה שבעה ימים ברצף", done: (s) => s.streak >= 7 },
-  { id: "league", icon: "🏟️", title: "בליגה", hint: "הצטרפות לליגה פרטית", done: (s) => s.leagues >= 1 },
-  { id: "first", icon: "🌱", title: "ענף ראשון", hint: "מישהו הצטרף דרך הקישור שלך", done: (s) => s.directJoined >= 1 },
-  { id: "five", icon: "🖐️", title: "חמישה ענפים", hint: "5 הצטרפו ישירות דרכך", done: (s) => s.directJoined >= 5 },
-  { id: "gen3", icon: "🧬", title: "דור שלישי", hint: "מישהו שהזמנת הזמין מישהו שהזמין עוד מישהו", done: (s) => s.depth >= 3 },
-  { id: "grove", icon: "🏞️", title: "חורשה", hint: "25 אנשים בעץ שלך", done: (s) => s.totalJoined >= 25 },
-  { id: "voted", icon: "🗳️", title: "הצבעתי", hint: "סימון הצבעה ביום הבחירות", done: (s) => s.voted },
-  { id: "witness", icon: "🔏", title: "חותמת עד", hint: "חבר אישר שהצבעת", done: (s) => s.confirmed },
-  { id: "ten", icon: "✨", title: "עשרה עלי זהב", hint: "10 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 10 },
-  { id: "forest", icon: "🌲", title: "יער זהב", hint: "100 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 100 },
+  { id: "seed", icon: "seed", title: "זרע ראשון", hint: "הצטרפות לעץ", done: () => true },
+  { id: "plan", icon: "map", title: "יש תוכנית", hint: "תוכנית הצבעה: מתי, איך ועם מי", done: (s) => s.planned },
+  { id: "water3", icon: "drop", title: "שלושה ימי השקיה", hint: "השקיה שלושה ימים ברצף", done: (s) => s.streak >= 3 },
+  { id: "water7", icon: "flame", title: "שבוע של השקיה", hint: "השקיה שבעה ימים ברצף", done: (s) => s.streak >= 7 },
+  { id: "league", icon: "league", title: "בליגה", hint: "הצטרפות לליגה פרטית", done: (s) => s.leagues >= 1 },
+  { id: "first", icon: "sprout", title: "ענף ראשון", hint: "מישהו הצטרף דרך הקישור שלך", done: (s) => s.directJoined >= 1 },
+  { id: "five", icon: "hand", title: "חמישה ענפים", hint: "5 הצטרפו ישירות דרכך", done: (s) => s.directJoined >= 5 },
+  { id: "gen3", icon: "generations", title: "דור שלישי", hint: "מישהו שהזמנת הזמין מישהו שהזמין עוד מישהו", done: (s) => s.depth >= 3 },
+  { id: "grove", icon: "grove", title: "חורשה", hint: "25 אנשים בעץ שלך", done: (s) => s.totalJoined >= 25 },
+  { id: "voted", icon: "ballot", title: "הצבעתי", hint: "סימון הצבעה ביום הבחירות", done: (s) => s.voted },
+  { id: "witness", icon: "stamp", title: "חותמת עד", hint: "חבר אישר שהצבעת", done: (s) => s.confirmed },
+  { id: "ten", icon: "sparkle", title: "עשרה עלי זהב", hint: "10 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 10 },
+  { id: "forest", icon: "forest", title: "יער זהב", hint: "100 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 100 },
 ];

@@ -1,39 +1,42 @@
-/* עץ ההצבעה: an Israeli election day as a storybook game. Flag blue and white on
- * Jerusalem-stone cream, olive and leaf greens, gold for anyone who voted, and a deep navy ink
- * for the chunky toy outlines. No party colours: the only blue is the flag's. */
+/* עץ ההצבעה in pixel art. Every colour comes from Resurrect 64 (Kerrie Lake, lospec.com), the
+ * same palette the scene is painted in, so the interface and the world read as one game.
+ * Pixel borders are drawn with stacked box-shadows (no rounded corners, no blur). */
 
 :root {
   color-scheme: light;
 
-  --bg: oklch(0.955 0.022 85); /* Jerusalem stone */
-  --bg-2: oklch(0.925 0.03 82);
-  --surface: oklch(0.993 0.006 90);
-  --surface-2: oklch(0.955 0.015 90);
-  --border: oklch(0.84 0.03 80);
-  --ink: oklch(0.24 0.06 262); /* outlines and text */
-  --text: var(--ink);
-  --text-soft: oklch(0.42 0.05 262);
-  --text-faint: oklch(0.55 0.035 262);
+  --bg: #c7dcd0; /* pale */
+  --bg-2: #b2ba90;
+  --surface: #ffffff;
+  --surface-2: #e8efe9;
+  --border: #9babb2;
+  --ink: #2e222f;
+  --text: #2e222f;
+  --text-soft: #3e3546;
+  --text-faint: #625565;
 
-  --flag: oklch(0.42 0.19 263); /* the flag's blue */
-  --flag-deep: oklch(0.33 0.16 263);
-  --flag-soft: oklch(0.86 0.06 255);
+  --flag: #4d65b4;
+  --flag-deep: #484a77;
+  --flag-soft: #8fd3ff;
   --primary: var(--flag);
   --primary-hover: var(--flag-deep);
-  --primary-text: #fff;
+  --primary-text: #ffffff;
 
-  --leaf: oklch(0.7 0.12 142);
-  --leaf-deep: oklch(0.5 0.11 148);
-  --gold: oklch(0.83 0.16 85);
-  --gold-deep: oklch(0.63 0.14 70);
-  --bark: oklch(0.42 0.06 55);
-  --anemone: oklch(0.6 0.21 25);
-
-  --ok: oklch(0.55 0.13 150);
-  --danger: oklch(0.55 0.19 27);
+  --leaf: #91db69;
+  --leaf-deep: #239063;
+  --gold: #f9c22b;
+  --gold-light: #fbb954;
+  --gold-glow: #fbff86;
+  --gold-deep: #f79617;
+  --bark: #694f62;
+  --anemone: #ea4f36;
+  --danger: #b33831;
+  --wa: #1ebc73;
+  --wa-deep: #239063;
 
   --font-sans: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Fredoka", "Rubik", system-ui, sans-serif;
+  --font-display: "Rubik", system-ui, sans-serif;
+  --font-pixel: "Rubik", system-ui, sans-serif; /* numbers stay vector: crisp at any size */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
   --step--1: calc(var(--text-base) / 1.18);
@@ -41,20 +44,24 @@
   --step-1: calc(var(--text-base) * 1.2);
   --step-2: calc(var(--text-base) * 1.5);
   --step-3: calc(var(--text-base) * 2);
-  --step-4: clamp(2.6rem, 1.7rem + 4.4vw, 5rem);
+  --step-4: clamp(2.4rem, 1.6rem + 4vw, 4.4rem);
   --leading: 1.55;
   --leading-tight: 1.05;
 
   --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
   --space-5: 1.5rem; --space-6: 2rem; --space-7: 3rem; --space-8: 4rem; --space-9: 6rem;
 
-  --radius-sm: 0.6rem; --radius: 1rem; --radius-lg: 1.5rem; --radius-full: 999px;
-  --line: 2.5px; /* the toy outline */
-  --shadow-1: 0 3px 0 var(--ink);
-  --shadow-2: 0 5px 0 var(--ink);
-  --dur-1: 120ms; --dur-2: 240ms; --dur-3: 480ms;
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius-sm: 0; --radius: 0; --radius-lg: 0; --radius-full: 0;
+  --px: 3px; /* one art pixel of chrome */
+  /* a pixel frame: four sides, the corners left out, then a hard drop */
+  --frame: 0 calc(-1 * var(--px)) 0 0 var(--ink), 0 var(--px) 0 0 var(--ink), calc(-1 * var(--px)) 0 0 0 var(--ink), var(--px) 0 0 0 var(--ink);
+  --frame-drop: var(--frame), 0 calc(3 * var(--px)) 0 0 rgb(46 34 47 / 0.28);
+  --line: var(--px);
+  --shadow-1: var(--frame);
+  --shadow-2: var(--frame-drop);
+  --dur-1: 80ms; --dur-2: 160ms; --dur-3: 320ms;
+  --ease: steps(4, end);
+  --bounce: steps(5, end);
 
   --measure: 62ch;
   --container: 70rem;
@@ -63,18 +70,16 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: oklch(0.2 0.04 262);
-    --bg-2: oklch(0.24 0.045 262);
-    --surface: oklch(0.27 0.045 262);
-    --surface-2: oklch(0.31 0.045 262);
-    --border: oklch(0.4 0.05 262);
-    --ink: oklch(0.12 0.03 262);
-    --text: oklch(0.96 0.015 90);
-    --text-soft: oklch(0.82 0.03 255);
-    --text-faint: oklch(0.68 0.03 255);
-    --flag: oklch(0.6 0.17 260);
-    --flag-deep: oklch(0.52 0.17 262);
-    --flag-soft: oklch(0.45 0.1 258);
-    --bark: oklch(0.5 0.06 55);
+    --bg: #323353;
+    --bg-2: #3e3546;
+    --surface: #484a77;
+    --surface-2: #3e3546;
+    --border: #625565;
+    --ink: #2e222f;
+    --text: #ffffff;
+    --text-soft: #c7dcd0;
+    --text-faint: #9babb2;
+    --flag: #4d9be6;
+    --flag-deep: #4d65b4;
   }
 }

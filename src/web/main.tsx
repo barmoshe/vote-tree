@@ -5,7 +5,8 @@ import "./base.css";
 import "./app.css";
 import { Link, usePath } from "./router";
 import { Confetti } from "./fx";
-import { About, Demo, Home, LeagueView, Leagues, MyTree, OgCard, Restore, WitnessPage } from "./pages";
+import { Icon } from "./icons";
+import { About, ArtLab, Demo, Home, LeagueView, Leagues, MyTree, OgCard, Restore, WitnessPage } from "./pages";
 import { ELECTION_DATE_LABEL } from "../shared/election";
 
 const TITLES: Record<string, string> = {
@@ -43,10 +44,10 @@ function Page({ path }: { path: string }) {
 }
 
 const TABS: [string, string, string][] = [
-  ["/tree", "🌳", "העץ שלי"],
-  ["/leagues", "🏆", "ליגות"],
-  ["/demo", "▶", "הדגמה"],
-  ["/about", "❓", "איך זה עובד"],
+  ["/tree", "tree", "העץ שלי"],
+  ["/leagues", "trophy", "ליגות"],
+  ["/demo", "play", "הדגמה"],
+  ["/about", "help", "איך זה עובד"],
 ];
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
   }, [path]);
 
   if (path === "/og-card") return <OgCard />;
+  if (path === "/art") return <ArtLab />;
 
   return (
     <>
@@ -68,14 +70,14 @@ function App() {
       <header className="site-head">
         <div className="container head-row">
           <Link href="/" className="brand">
-            <img src="/icon.svg" alt="" width="32" height="32" />
+            <img src="/icon.svg" alt="" width="32" height="32" className="brand-mark" />
             עץ ההצבעה
           </Link>
-          <span className="head-chip">🗳️ {ELECTION_DATE_LABEL}</span>
+          <span className="head-chip"><Icon name="ballot" size={12} /> {ELECTION_DATE_LABEL}</span>
           <nav className="tabs" aria-label="ראשי">
             {TABS.map(([href, icon, label]) => (
               <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
-                <span aria-hidden="true">{icon}</span>
+                <Icon name={icon} size={20} />
                 <span>{label}</span>
               </Link>
             ))}
