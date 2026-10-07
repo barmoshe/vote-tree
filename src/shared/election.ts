@@ -18,3 +18,8 @@ export function phase(now = Date.now(), forceOpen = false): Phase {
 export function daysUntil(now = Date.now()): number {
   return Math.max(0, Math.ceil((POLLS_OPEN - now) / 86_400_000));
 }
+
+// The calendar date in Israel ("2026-10-27"), for once-a-day watering.
+export function israelDate(now = Date.now()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(new Date(now));
+}
