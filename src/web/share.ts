@@ -127,3 +127,22 @@ export function voteIcs(plan: { when: string; how: string; with: string }, looku
   ].join("\r\n");
   return new Blob([ics], { type: "text/calendar;charset=utf-8" });
 }
+
+/**
+ * Shrinks a camera photo to at most 900px and re-encodes it as JPEG in the browser. Re-encoding
+ * through a canvas drops all metadata, so the phone's GPS position never leaves the device.
+ */
+export async function preparePhoto(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * scale);
+  c.height = Math.round(bmp.height * scale);
+  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close();
+  for (const q of [0.78, 0.65, 0.5]) {
+    const blob = await new Promise<Blob>((r) => c.toBlob((b) => r(b!), "image/jpeg", q));
+    if (blob.size <= 440_000) return blob;
+  }
+  throw new Error("photo_size");
+}

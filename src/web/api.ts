@@ -31,6 +31,14 @@ export const api = {
     const r = await fetch(`/api/leagues/${encodeURIComponent(code)}`);
     return r.ok ? ((await r.json()) as League) : null;
   },
+  uploadPhoto: async (blob: Blob) => {
+    const res = await fetch("/api/photo", { method: "POST", headers: { "content-type": "image/jpeg" }, body: blob });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new Error(data.error ?? String(res.status));
+  },
+  deletePhoto: () => post("/api/photo/delete"),
+  flagPhoto: (token: string) => post(`/api/photo/${encodeURIComponent(token)}/flag`),
+  photoUrl: (token: string) => `/api/photo/${encodeURIComponent(token)}`,
   createLeague: (name: string) => post("/api/leagues", { name }) as Promise<{ code?: string }>,
   joinLeague: (code: string) => post(`/api/leagues/${encodeURIComponent(code)}/join`),
   leaveLeague: (code: string) => post(`/api/leagues/${encodeURIComponent(code)}/leave`),
@@ -53,6 +61,10 @@ const ERRORS: Record<string, string> = {
   leagues: "הגעת למספר הליגות המקסימלי.",
   not_found: "לא מצאנו את זה. אולי הקישור הועתק חלקית?",
   auth: "צריך עץ כדי לעשות את זה.",
+  vote_first: "קודם מסמנים שהצבעת.",
+  photo_size: "התמונה גדולה מדי. אפשר לנסות תמונה אחרת.",
+  photo_type: "אפשר להעלות רק תמונה.",
+  photo_hidden: "חברי הליגה סימנו את התמונה הקודמת, אז אי אפשר להחליף אותה.",
 };
 
 export function errorText(e: unknown) {

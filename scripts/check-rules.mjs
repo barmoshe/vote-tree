@@ -57,9 +57,9 @@ for (const t of targets) {
 }
 check("a witness can stamp five, not six", statuses.slice(0, 4).every((s) => s === 200) && statuses[4] === 429, JSON.stringify(statuses));
 
-// points: water 1 + plan 3 + vote 10 + stamp 10 + 3 direct joins + 2 direct votes x5 + 4 deeper votes x1
+// points: water 1 + plan 3 + vote 1 + stamp 10 + 3 direct joins + 2 direct votes x5 + 4 deeper votes x1
 const after = await me(R);
-const expected = 1 + 3 + 10 + 10 + 3 + 2 * 5 + 4;
+const expected = 1 + 3 + 1 + 10 + 3 + 2 * 5 + 4;
 check("points add up", after.points === expected, `got ${after.points}, expected ${expected}`);
 check("stats", after.stats.totalJoined === 7 && after.stats.totalVoted === 6 && after.stats.confirmed && after.stats.streak === 1, JSON.stringify(after.stats));
 
@@ -76,6 +76,31 @@ const table = (await call(`/api/leagues/${L.json.code}`, R.cookie)).json;
 check("league ranks members, including one with no tree", table.members.length === 3 && table.members[0].name === R.name && table.members.some((m) => m.name === kids[2].name), JSON.stringify(table.members.map((m) => [m.name, m.points])));
 check("league marks me", table.isMember && table.isOwner && table.members[0].me === true);
 check("leaving a league", (await call(`/api/leagues/${L.json.code}/leave`, grand[3].cookie, {})).status === 200 && (await call(`/api/leagues/${L.json.code}`, R.cookie)).json.members.length === 2);
+
+// the polling-station photo
+const jpeg = new Uint8Array(4000);
+jpeg.set([0xff, 0xd8, 0xff, 0xe0]);
+const upload = (p, body = jpeg) => fetch(base + "/api/photo", { method: "POST", headers: { origin: base, "content-type": "image/jpeg", cookie: p.cookie }, body }).then((r) => r.status);
+check("no photo before voting", (await upload(kids[2])) === 409);
+check("a photo that is not a JPEG is refused", (await upload(R, new Uint8Array(4000))) === 415);
+check("a voter can upload a photo", (await upload(R)) === 200);
+const withPhoto = await me(R);
+check("a photo adds 10", withPhoto.points === expected + 10 && withPhoto.stats.photo, `got ${withPhoto.points}`);
+const L2 = (await call(`/api/leagues/${L.json.code}`, R.cookie)).json;
+const token = L2.members.find((m) => m.me)?.photo;
+check("league-mates see the photo token", !!token);
+check("a league-mate can open the photo", (await fetch(`${base}/api/photo/${token}`, { headers: { cookie: kids[2].cookie } })).status === 200);
+check("a stranger cannot", (await fetch(`${base}/api/photo/${token}`, { headers: { cookie: grand[0].cookie } })).status === 404);
+check("the national league never carries photo tokens", !(await call("/api/leaders", null)).json.leaders.some((l) => l.photo));
+check("you cannot flag your own photo", (await call(`/api/photo/${token}/flag`, R.cookie, {})).status === 404);
+await call(`/api/leagues/${L.json.code}/join`, kids[1].cookie, {});
+await call(`/api/photo/${token}/flag`, kids[2].cookie, {});
+await call(`/api/photo/${token}/flag`, kids[2].cookie, {}); // the same flagger twice counts once
+check("one flagger is not enough", (await me(R)).stats.photo === true);
+await call(`/api/photo/${token}/flag`, kids[1].cookie, {});
+const flagged = await me(R);
+check("two flags hide the photo and its points", flagged.stats.photo === false && flagged.photo?.hidden === true && flagged.points === expected, `got ${flagged.points}`);
+check("a hidden photo cannot be replaced", (await upload(R)) === 409);
 
 // link previews name the sender
 const page = await fetch(`${base}/c/${rMe.confirmCode}`).then((r) => r.text());

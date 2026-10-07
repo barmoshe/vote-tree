@@ -5,7 +5,7 @@ import { LeafChip, Scene } from "./Scene";
 import { demoTree } from "./demoTree";
 import { celebrate, Modal } from "./fx";
 import { Icon } from "./icons";
-import { download, shareOrDownload, storyCard, voteIcs } from "./share";
+import { download, preparePhoto, shareOrDownload, storyCard, voteIcs } from "./share";
 import { ACHIEVEMENTS, LEVELS, POINTS, SPECIES, level, pointsOf } from "../shared/game";
 import { ELECTION_DATE_LABEL } from "../shared/election";
 import type { League, Leader, Me, MeResponse, Pulse, Witness } from "../shared/api";
@@ -70,8 +70,9 @@ function DropsTable() {
     ["השקיה יומית עד יום הבחירות", POINTS.water],
     ["מישהו הצטרף דרך הקישור שלך", POINTS.inviteJoined],
     ["תוכנית הצבעה: מתי, איך ועם מי", POINTS.plan],
-    ["הצבעת ב־27.10", POINTS.selfVoted],
-    ["חבר החתים חותמת עד על הפתק שלך", POINTS.confirmed],
+    ["סימנת שהצבעת ב־27.10", POINTS.selfVoted],
+    ["חבר שהיה איתך החתים חותמת עד", POINTS.confirmed],
+    ["תמונה מבחוץ לקלפי, שחברי הליגה לא סימנו", POINTS.photo],
     ["מישהו שהזמנת הצביע", POINTS.directVoted],
     ["מישהו בהמשך העץ שלך הצביע", POINTS.deeperVoted],
   ];
@@ -322,26 +323,37 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
     const text = `הצבעתי. היית איתי? החותמת שלך על הפתק שלי: ${link}`;
     return (
       <Slip className="slip-done">
-        <p className="slip-big"><Icon name="check" /> הפתק בקלפי</p>
-        {me.confirmedBy ? (
-          <p>
-            <Icon name="stamp" /> חותמת עד מ־<b>{me.confirmedBy}</b>. הפתק שלך שווה {POINTS.selfVoted + POINTS.confirmed} טיפות.
-          </p>
-        ) : (
-          me.confirmCode && (
-            <>
-              <p>חבר שהיה איתך יכול להחתים חותמת עד: עוד {POINTS.confirmed} טיפות.</p>
-              <div className="row">
-                <a className="btn btn-wa btn-small" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-                  לבקש חותמת
-                </a>
-                <button className="btn btn-ghost btn-small" onClick={() => copy(link)}>
-                  {copied ? "הועתק" : "העתקת הקישור"}
-                </button>
-              </div>
-            </>
-          )
-        )}
+        <p className="slip-big">
+          <Icon name="check" /> הפתק בקלפי
+        </p>
+        <p className="hint">סימון לבד שווה טיפה אחת. כל הוכחה מוסיפה {POINTS.confirmed}.</p>
+        <div className="proofs">
+          <div className={`proof ${me.confirmedBy ? "done" : ""}`}>
+            <p className="proof-h">
+              <Icon name="stamp" /> חותמת עד <span className="q-reward">+{POINTS.confirmed}</span>
+            </p>
+            {me.confirmedBy ? (
+              <p>
+                חתם/ה: <b>{me.confirmedBy}</b>
+              </p>
+            ) : (
+              me.confirmCode && (
+                <>
+                  <p className="hint">חבר שהיה איתך בקלפי מאשר.</p>
+                  <div className="row">
+                    <a className="btn btn-wa btn-small" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
+                      לבקש חותמת
+                    </a>
+                    <button className="btn btn-ghost btn-small" onClick={() => copy(link)}>
+                      {copied ? "הועתק" : "העתקה"}
+                    </button>
+                  </div>
+                </>
+              )
+            )}
+          </div>
+          <PhotoProof me={me} open={data.phase === "open"} onChange={onVoted} />
+        </div>
       </Slip>
     );
   }
@@ -396,6 +408,57 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
       )}
       <ErrorLine text={error} />
     </Slip>
+  );
+}
+
+function PhotoProof({ me, open, onChange }: { me: Me; open: boolean; onChange: () => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.uploadPhoto(await preparePhoto(f));
+      celebrate("gold");
+      onChange();
+    } catch (err) {
+      setError(errorText(err));
+    }
+    setBusy(false);
+  }
+  const ph = me.photo;
+  return (
+    <div className={`proof ${ph && !ph.hidden ? "done" : ""}`}>
+      <p className="proof-h">
+        <Icon name="camera" /> תמונה מהקלפי <span className="q-reward">+{POINTS.photo}</span>
+      </p>
+      {ph?.hidden ? (
+        <p className="hint">חברי הליגה סימנו שזו לא תמונה מקלפי, והטיפות ירדו.</p>
+      ) : ph ? (
+        <>
+          <img className="proof-img" src={api.photoUrl(ph.token)} alt="התמונה שלך מהקלפי" />
+          <p className="hint">רק חברי הליגות שלך רואים אותה, והיא נמחקת כשהקלפיות נסגרות.</p>
+          {open && (
+            <button className="btn btn-ghost btn-small" onClick={() => api.deletePhoto().then(onChange)}>
+              מחיקה
+            </button>
+          )}
+        </>
+      ) : open ? (
+        <>
+          <p className="hint">מבחוץ: השלט של הקלפי, הכניסה, את או אתה ליד. בלי הפתק, בלי הפרגוד ובלי אנשים אחרים.</p>
+          <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
+          <button className="btn btn-small" disabled={busy} onClick={() => input.current?.click()}>
+            {busy ? "מעלים…" : "צילום"}
+          </button>
+        </>
+      ) : null}
+      <ErrorLine text={error} />
+    </div>
   );
 }
 
@@ -544,6 +607,7 @@ function Quests({ me, phase, onPlan }: { me: Me; phase: MeResponse["phase"]; onP
     { icon: "generations", title: "דור שלישי", sub: "חבר של חבר של חבר", reward: null, done: s.depth >= 3, progress: [Math.min(3, s.depth), 3] },
     { icon: "ballot", title: "הצבעתי", sub: phase === "before" ? `נפתח ב־${ELECTION_DATE_LABEL}` : "יום הבחירות", reward: POINTS.selfVoted, done: s.voted },
     { icon: "stamp", title: "חותמת עד", sub: "חבר שהיה איתך מאשר", reward: POINTS.confirmed, done: s.confirmed },
+    { icon: "camera", title: "תמונה מהקלפי", sub: "מבחוץ, בלי הפתק ובלי הפרגוד", reward: POINTS.photo, done: s.photo },
   ];
   return (
     <section className="panel quests" aria-labelledby="q-h">
@@ -819,7 +883,7 @@ export function MyTree() {
 
 // ---------- leagues ----------
 
-function Table({ rows, start = 1 }: { rows: Leader[]; start?: number }) {
+function Table({ rows, start = 1, onPhoto }: { rows: Leader[]; start?: number; onPhoto?: (r: Leader) => void }) {
   return (
     <ol className="ranks" start={start}>
       {rows.map((r, k) => (
@@ -834,13 +898,18 @@ function Table({ rows, start = 1 }: { rows: Leader[]; start?: number }) {
             <Icon name={level(r.points).icon} size={11} /> {r.joined} בעץ · {r.voted} זהב
           </span>
           <span className="drops"><Icon name="drop" /> {r.points}</span>
+          {r.photo && onPhoto && (
+            <button className="btn btn-ghost btn-small photo-btn" onClick={() => onPhoto(r)} aria-label={`התמונה של ${r.name} מהקלפי`}>
+              <Icon name="camera" />
+            </button>
+          )}
         </li>
       ))}
     </ol>
   );
 }
 
-function Podium({ rows }: { rows: Leader[] }) {
+function Podium({ rows, onPhoto }: { rows: Leader[]; onPhoto?: (r: Leader) => void }) {
   const p = rows.slice(0, 3);
   const order = [p[1], p[0], p[2]];
   return (
@@ -856,6 +925,11 @@ function Podium({ rows }: { rows: Leader[] }) {
             <span>
               <Icon name={level(r.points).icon} size={11} /> {level(r.points).name} · <Icon name="drop" /> {r.points}
             </span>
+            {r.photo && onPhoto && (
+              <button className="btn btn-ghost btn-small photo-btn" onClick={() => onPhoto(r)} aria-label={`התמונה של ${r.name} מהקלפי`}>
+                <Icon name="camera" />
+              </button>
+            )}
             <span className="p-block" />
           </li>
         ) : (
@@ -977,6 +1051,8 @@ export function LeagueView({ code }: { code: string }) {
   const [copied, copy] = useCopy();
   const load = () => api.league(code).then(setLeague);
   useEffect(() => void load(), [code]);
+  const [viewing, setViewing] = useState<Leader | null>(null);
+  const [flagged, setFlagged] = useState(false);
 
   if (league === undefined)
     return (
@@ -1047,8 +1123,28 @@ export function LeagueView({ code }: { code: string }) {
         )}
       </div>
       <ErrorLine text={error} />
-      {league.members.length > 0 && <Podium rows={league.members} />}
-      {league.members.length > 3 && <Table rows={league.members.slice(3)} start={4} />}
+      {league.members.length > 0 && <Podium rows={league.members} onPhoto={setViewing} />}
+      {league.members.length > 3 && <Table rows={league.members.slice(3)} start={4} onPhoto={setViewing} />}
+      <Modal open={!!viewing} onClose={() => { setViewing(null); setFlagged(false); }} label="תמונה מהקלפי">
+        {viewing?.photo && (
+          <div className="moment">
+            <h2>
+              <Icon name="camera" /> {viewing.name} בקלפי
+            </h2>
+            <img className="proof-img big" src={api.photoUrl(viewing.photo)} alt={`התמונה של ${viewing.name} מהקלפי`} />
+            {viewing.me ? (
+              <p className="hint">זו התמונה שלך.</p>
+            ) : flagged ? (
+              <p className="hint">סומן. שני סימונים מורידים את התמונה ואת הטיפות שלה.</p>
+            ) : (
+              <button className="btn btn-ghost" onClick={() => api.flagPhoto(viewing.photo!).then(() => setFlagged(true)).catch(() => setFlagged(true))}>
+                זו לא תמונה מקלפי
+              </button>
+            )}
+            <p className="hint">התמונות נמחקות כשהקלפיות נסגרות.</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -1172,7 +1268,7 @@ export function Demo() {
       }
     }
     const meVoted = DEMO[0].t! <= hour;
-    const pts = pointsOf({ voted: meVoted, planned: true, confirmed: meVoted && hour > 9, watered: 7, directJoined: direct, directVoted, totalVoted: voted });
+    const pts = pointsOf({ voted: meVoted, planned: true, confirmed: meVoted && hour > 9, photo: meVoted && hour > 8.6, watered: 7, directJoined: direct, directVoted, totalVoted: voted });
     return { total, voted: voted + (meVoted ? 1 : 0), pts, meVoted };
   }, [hour]);
 
@@ -1285,10 +1381,10 @@ export function About() {
       </p>
 
       <h2><Icon name="stamp" /> חותמת עד, ולמה אין אימות אמיתי</h2>
-      <p>אין דרך לבדוק שמישהו באמת הצביע בלי לפגוע בפרטיות שלו, ולכן לא נבקש תמונה, מסמך או מיקום. מה שיש: אחרי שמצביעים, חבר שהיה איתך יכול להחתים חותמת עד, וכל אחד יכול להחתים עד חמישה אנשים. זה עדיין מבוסס על אמון, והטיפות לא שוות כלום מחוץ לעץ.</p>
+      <p>אין דרך לבדוק בוודאות שמישהו הצביע בלי לפגוע בפרטיות שלו. לכן סימון &quot;הצבעתי&quot; לבד שווה טיפה אחת, ומה שמוסיף טיפות זה הוכחה מחברים: חותמת עד מחבר שהיה איתך (כל אחד מחתים עד חמישה אנשים), ותמונה מבחוץ לקלפי שרק חברי הליגות שלך רואים. אם שניים מהם מסמנים שזו לא תמונה מקלפי, היא יורדת. בתמונה אף פעם לא מצלמים את הפתק או את הפרגוד.</p>
 
       <h2><Icon name="lock" /> מה נשמר ומה לא</h2>
-      <p>נשמרים שם התצוגה שבחרת, מי הזמין את מי, באילו ליגות את או אתה, ומתי סימנת שהצבעת, השקית או הכנת תוכנית. התוכנית עצמה נשארת בטלפון שלך. לא נשמרים טלפון, מייל או מיקום. העץ לא שואל, לא שומר ולא מציג במי בחרת, ואין בו שום מסר בעד או נגד מפלגה.</p>
+      <p>נשמרים שם התצוגה שבחרת, מי הזמין את מי, באילו ליגות את או אתה, ומתי סימנת שהצבעת, השקית או הכנת תוכנית. התוכנית עצמה נשארת בטלפון שלך. תמונה מהקלפי, אם העלית, מוקטנת בטלפון לפני ההעלאה (בלי מיקום ובלי פרטי מכשיר), נראית רק לחברי הליגות שלך, ונמחקת אוטומטית כשהקלפיות נסגרות. לא נשמרים טלפון, מייל או מיקום. העץ לא שואל, לא שומר ולא מציג במי בחרת, ואין בו שום מסר בעד או נגד מפלגה.</p>
       <p>בעץ שלך רואים בשם רק את מי שהזמנת בעצמך. מי שהגיע דרכם מופיע כפתק בלי שם. מחיקת השם אפשרית בכל רגע מתחתית העמוד של העץ שלך.</p>
 
       <h2><Icon name="sparkle" /> על מה זה נשען</h2>

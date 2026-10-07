@@ -4,8 +4,9 @@ export const POINTS = {
   inviteJoined: 1, // someone you invited joined
   plan: 3, // you made a voting plan
   water: 1, // one watering a day before election day
-  selfVoted: 10, // you voted
-  confirmed: 10, // a friend stamped your vote as witnessed (a confirmed vote is worth 20)
+  selfVoted: 1, // you tapped "I voted": a claim alone is worth little
+  confirmed: 10, // a friend stamped your vote as witnessed
+  photo: 10, // a photo from outside the polling station, unflagged by your league-mates
   directVoted: 5, // someone you invited voted
   deeperVoted: 1, // someone further down your tree voted
 } as const;
@@ -49,6 +50,7 @@ export type Stats = {
   voted: boolean;
   planned: boolean;
   confirmed: boolean; // a witness stamped your vote
+  photo: boolean; // a photo from the polling station, not hidden by flags
   watered: number; // days watered in total
   streak: number; // current run of consecutive days
   leagues: number;
@@ -59,10 +61,11 @@ export type Stats = {
   depth: number; // generations below you
 };
 
-export function pointsOf(s: Pick<Stats, "voted" | "planned" | "confirmed" | "watered" | "directJoined" | "directVoted" | "totalVoted">) {
+export function pointsOf(s: Pick<Stats, "voted" | "planned" | "confirmed" | "photo" | "watered" | "directJoined" | "directVoted" | "totalVoted">) {
   return (
     (s.voted ? POINTS.selfVoted : 0) +
     (s.voted && s.confirmed ? POINTS.confirmed : 0) +
+    (s.voted && s.photo ? POINTS.photo : 0) +
     (s.planned ? POINTS.plan : 0) +
     s.watered * POINTS.water +
     s.directJoined * POINTS.inviteJoined +
@@ -83,6 +86,7 @@ export const ACHIEVEMENTS: { id: string; icon: string; title: string; hint: stri
   { id: "grove", icon: "grove", title: "חורשה", hint: "25 אנשים בעץ שלך", done: (s) => s.totalJoined >= 25 },
   { id: "voted", icon: "ballot", title: "הצבעתי", hint: "סימון הצבעה ביום הבחירות", done: (s) => s.voted },
   { id: "witness", icon: "stamp", title: "חותמת עד", hint: "חבר אישר שהצבעת", done: (s) => s.confirmed },
+  { id: "photo", icon: "camera", title: "תמונה מהקלפי", hint: "תמונה מבחוץ, בלי הפתק ובלי הפרגוד", done: (s) => s.photo },
   { id: "ten", icon: "sparkle", title: "עשרה עלי זהב", hint: "10 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 10 },
   { id: "forest", icon: "forest", title: "יער זהב", hint: "100 הצביעו בעץ שלך", done: (s) => s.totalVoted >= 100 },
 ];

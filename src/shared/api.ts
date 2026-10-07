@@ -13,6 +13,7 @@ export type Me = {
   species: string;
   confirmCode: string | null; // the witness link, once you voted
   confirmedBy: string | null; // who stamped your vote
+  photo: { token: string; hidden: boolean } | null;
   wateredToday: boolean;
   leagues: { code: string; name: string; members: number }[];
   stats: Stats;
@@ -23,7 +24,7 @@ export type Me = {
 
 export type MeResponse = { me: Me | null; phase: Phase; daysUntil: number };
 
-export type Leader = { name: string; points: number; joined: number; voted: number; species: string; me?: boolean };
+export type Leader = { name: string; points: number; joined: number; voted: number; species: string; me?: boolean; photo?: string };
 
 export type League = { code: string; name: string; owner: string; isMember: boolean; isOwner: boolean; members: Leader[] };
 

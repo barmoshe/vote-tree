@@ -313,7 +313,7 @@ input:focus-visible { outline: var(--px) solid var(--gold); outline-offset: var(
 .podium .me b { color: var(--flag); }
 .ranks { list-style: none; padding: 0; display: grid; gap: var(--space-3); }
 .ranks li {
-  display: grid; grid-template-columns: 2rem auto 1fr auto; grid-template-areas: "n chip name drops" "n chip meta drops";
+  display: grid; grid-template-columns: 2rem auto 1fr auto auto; grid-template-areas: "n chip name drops photo" "n chip meta drops photo";
   align-items: center; column-gap: var(--space-2); margin: var(--px);
   padding: var(--space-2) var(--space-3); background: var(--surface); box-shadow: var(--frame);
 }
@@ -381,3 +381,14 @@ input:focus-visible { outline: var(--px) solid var(--gold); outline-offset: var(
 
 /* numbers: vector, heavy, fixed-width digits */
 .counters dd, .drops, .demo-clock, .slip-count b, .q-reward, .streak, .drops-table td, .p-medal, .r-n, .pulse b, .xp em, .head-chip { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* proofs after voting */
+.proofs { display: grid; gap: var(--space-3); width: 100%; text-align: start; }
+.proof { background: #ffffff; margin: var(--px); padding: var(--space-3); box-shadow: var(--frame); display: grid; gap: var(--space-2); justify-items: start; }
+.proof.done { background: #dff5d0; }
+.proof-h { font-weight: 800; display: flex; gap: 6px; align-items: center; width: 100%; }
+.proof-h .q-reward { margin-inline-start: auto; }
+.proof-img { width: 100%; max-height: 14rem; object-fit: cover; box-shadow: var(--frame); margin: var(--px); }
+.proof-img.big { max-height: 60vh; object-fit: contain; background: #2e222f; }
+.photo-btn { min-height: 2rem; padding: 0 var(--space-2); }
+.ranks li .photo-btn { grid-area: photo; }

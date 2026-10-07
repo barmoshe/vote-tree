@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { daysUntil, israelDate, phase } from "../shared/election";
+import { MARKING_CLOSES, daysUntil, israelDate, phase } from "../shared/election";
 import { SPECIES, level, pointsOf } from "../shared/game";
 import type { Leader, League, Me, MeResponse, Pulse, TreeNode, Witness } from "../shared/api";
 
@@ -33,6 +33,8 @@ const STAMPS_PER_WITNESS = 5;
 const LEAGUES_OWNED = 10;
 const LEAGUES_JOINED = 20;
 const LEAGUE_TABLE = 200;
+const PHOTO_MAX = 450_000;
+const FLAGS_TO_HIDE = 2;
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -116,13 +118,14 @@ async function limited(db: D1Database, key: string, max: number, windowMs: numbe
 }
 
 type Agg = { dj: number; tj: number; dv: number; tv: number; depth: number };
-type Scored = Agg & Pick<User, "voted_at" | "plan_at" | "confirmed_by" | "water_total">;
+type Scored = Agg & Pick<User, "voted_at" | "plan_at" | "confirmed_by" | "water_total"> & { has_photo?: number };
 
 const points = (r: Scored) =>
   pointsOf({
     voted: r.voted_at != null,
     planned: r.plan_at != null,
     confirmed: r.confirmed_by != null,
+    photo: r.has_photo === 1,
     watered: r.water_total,
     directJoined: r.dj,
     directVoted: r.dv,
@@ -142,12 +145,25 @@ async function aggregate(db: D1Database, id: string): Promise<Agg> {
   return (await db.prepare(AGG_SQL).bind(id).first<Agg>()) ?? EMPTY;
 }
 
+const hasPhoto = async (db: D1Database, id: string) =>
+  ((await db.prepare("SELECT COUNT(*) AS n FROM photos WHERE user_id = ? AND hidden = 0").bind(id).first<{ n: number }>())?.n ?? 0) > 0 ? 1 : 0;
+
+/** Do these two people share a private league? */
+async function leagueMates(db: D1Database, a: string, b: string) {
+  const row = await db
+    .prepare("SELECT 1 AS y FROM league_members x JOIN league_members y ON x.league_id = y.league_id WHERE x.user_id = ? AND y.user_id = ? LIMIT 1")
+    .bind(a, b)
+    .first();
+  return !!row;
+}
+
 // One ranking for the national league and every private league. LEFT JOINs keep people who have
 // not invited anyone yet: they still score their own vote, plan, stamp and watering.
-async function ranked(db: D1Database, where: string, binds: unknown[], meId?: string): Promise<Leader[]> {
+async function ranked(db: D1Database, where: string, binds: unknown[], meId?: string, withPhotos = false): Promise<Leader[]> {
   const { results } = await db
     .prepare(
       `SELECT u.id, u.name, u.species, u.voted_at, u.plan_at, u.confirmed_by, u.water_total,
+              (SELECT p.token FROM photos p WHERE p.user_id = u.id AND p.hidden = 0) AS photo_token,
               COALESCE(SUM(a.dist = 1), 0) AS dj, COUNT(d.id) AS tj,
               COALESCE(SUM(a.dist = 1 AND d.voted_at IS NOT NULL), 0) AS dv,
               COALESCE(SUM(d.voted_at IS NOT NULL), 0) AS tv, 0 AS depth
@@ -158,14 +174,22 @@ async function ranked(db: D1Database, where: string, binds: unknown[], meId?: st
        GROUP BY u.id`,
     )
     .bind(...binds)
-    .all<Scored & { id: string; name: string; species: string }>();
+    .all<Scored & { id: string; name: string; species: string; photo_token: string | null }>();
   return results
-    .map((r) => ({ name: r.name, species: r.species, points: points(r), joined: r.tj, voted: r.tv, ...(meId && r.id === meId ? { me: true } : {}) }))
+    .map((r) => ({
+      name: r.name,
+      species: r.species,
+      points: points({ ...r, has_photo: r.photo_token ? 1 : 0 }),
+      joined: r.tj,
+      voted: r.tv,
+      ...(meId && r.id === meId ? { me: true } : {}),
+      ...(withPhotos && r.photo_token ? { photo: r.photo_token } : {}),
+    }))
     .sort((x, y) => y.points - x.points || y.voted - x.voted || y.joined - x.joined);
 }
 
 async function loadMe(db: D1Database, user: User, key: string): Promise<Me> {
-  const [agg, rows, inviter, leagues, stamper] = await db.batch([
+  const [agg, rows, inviter, leagues, stamper, photo] = await db.batch([
     db.prepare(AGG_SQL).bind(user.id),
     db
       .prepare(
@@ -185,7 +209,9 @@ async function loadMe(db: D1Database, user: User, key: string): Promise<Me> {
       )
       .bind(user.id),
     db.prepare("SELECT name FROM users WHERE id = ?").bind(user.confirmed_by ?? ""),
+    db.prepare("SELECT token, hidden FROM photos WHERE user_id = ?").bind(user.id),
   ]);
+  const ph = photo.results[0] as { token: string; hidden: number } | undefined;
   const a = (agg.results[0] as Agg | undefined) ?? EMPTY;
   const list = rows.results as { id: string; parent_id: string; name: string; voted_at: number | null; dist: number }[];
 
@@ -214,12 +240,14 @@ async function loadMe(db: D1Database, user: User, key: string): Promise<Me> {
     species: user.species,
     confirmCode: user.voted_at != null ? user.confirm_code : null,
     confirmedBy: (stamper.results[0] as { name: string } | undefined)?.name ?? null,
+    photo: ph ? { token: ph.token, hidden: ph.hidden === 1 } : null,
     wateredToday: user.water_day === today,
     leagues: myLeagues,
     stats: {
       voted: user.voted_at != null,
       planned: user.plan_at != null,
       confirmed: user.confirmed_by != null,
+      photo: !!ph && ph.hidden === 0,
       watered: user.water_total,
       streak,
       leagues: myLeagues.length,
@@ -229,7 +257,7 @@ async function loadMe(db: D1Database, user: User, key: string): Promise<Me> {
       totalVoted: a.tv,
       depth: a.depth,
     },
-    points: points({ ...a, ...user }),
+    points: points({ ...a, ...user, has_photo: ph && ph.hidden === 0 ? 1 : 0 }),
     tree,
     treeTruncated: list.length > TREE_LIMIT,
   };
@@ -351,7 +379,7 @@ app.post("/api/species", async (c) => {
   const sp = SPECIES.find((s) => s.id === b.species);
   if (!sp) return c.json({ error: "species" }, 400);
   const a = await aggregate(c.env.DB, user.id);
-  if (level(points({ ...a, ...user })).index < sp.level) return c.json({ error: "locked" }, 403);
+  if (level(points({ ...a, ...user, has_photo: await hasPhoto(c.env.DB, user.id) })).index < sp.level) return c.json({ error: "locked" }, 403);
   await c.env.DB.prepare("UPDATE users SET species = ? WHERE id = ?").bind(sp.id, user.id).run();
   return c.json({ ok: true });
 });
@@ -428,12 +456,14 @@ app.get("/api/leagues/:code", async (c) => {
   const me = await currentUser(c);
   const league = await db.prepare("SELECT l.id, l.code, l.name, l.owner_id, u.name AS owner FROM leagues l JOIN users u ON u.id = l.owner_id WHERE l.code = ?").bind(param(c, "code")).first<{ id: string; code: string; name: string; owner_id: string; owner: string }>();
   if (!league) return c.json({ error: "not_found" }, 404);
-  const members = await ranked(db, "u.id IN (SELECT user_id FROM league_members WHERE league_id = ?)", [league.id], me?.id);
+  const isMember = !!me && !!(await db.prepare("SELECT 1 AS y FROM league_members WHERE league_id = ? AND user_id = ?").bind(league.id, me.id).first());
+  // Photos are for league-mates only, and only until the polls close.
+  const members = await ranked(db, "u.id IN (SELECT user_id FROM league_members WHERE league_id = ?)", [league.id], me?.id, isMember && isOpen(c.env) !== "after");
   const res: League = {
     code: league.code,
     name: league.name,
     owner: league.owner,
-    isMember: members.some((m) => m.me),
+    isMember,
     isOwner: me?.id === league.owner_id,
     members: members.slice(0, LEAGUE_TABLE),
   };
@@ -457,6 +487,62 @@ app.post("/api/leagues/:code/leave", async (c) => {
   if (!me) return c.json({ error: "auth" }, 401);
   await c.env.DB.prepare("DELETE FROM league_members WHERE user_id = ? AND league_id = (SELECT id FROM leagues WHERE code = ?)").bind(me.id, param(c, "code")).run();
   return c.json({ ok: true });
+});
+
+// ---------- the polling-station photo ----------
+
+app.post("/api/photo", async (c) => {
+  const db = c.env.DB;
+  const me = await currentUser(c);
+  if (!me) return c.json({ error: "auth" }, 401);
+  if (isOpen(c.env) !== "open") return c.json({ error: "closed" }, 409);
+  if (me.voted_at == null) return c.json({ error: "vote_first" }, 409);
+  const buf = new Uint8Array(await c.req.arrayBuffer());
+  if (buf.length < 1000 || buf.length > PHOTO_MAX) return c.json({ error: "photo_size" }, 413);
+  if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) return c.json({ error: "photo_type" }, 415);
+  const existing = await db.prepare("SELECT hidden FROM photos WHERE user_id = ?").bind(me.id).first<{ hidden: number }>();
+  if (existing?.hidden) return c.json({ error: "photo_hidden" }, 409);
+  await db
+    .prepare(
+      `INSERT INTO photos (user_id, token, data, created_at) VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, data = excluded.data, created_at = excluded.created_at`,
+    )
+    .bind(me.id, newCode(10), buf, Date.now())
+    .run();
+  return c.json({ ok: true });
+});
+
+app.post("/api/photo/delete", async (c) => {
+  const me = await currentUser(c);
+  if (!me) return c.json({ error: "auth" }, 401);
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM photos WHERE user_id = ? AND hidden = 0").bind(me.id),
+  ]);
+  return c.json({ ok: true });
+});
+
+app.get("/api/photo/:token", async (c) => {
+  const db = c.env.DB;
+  const me = await currentUser(c);
+  if (!me) return c.json({ error: "auth" }, 401);
+  if (isOpen(c.env) === "after") return c.json({ error: "gone" }, 410);
+  const row = await db.prepare("SELECT user_id, data FROM photos WHERE token = ?").bind(param(c, "token")).first<{ user_id: string; data: ArrayBuffer | number[] }>();
+  if (!row) return c.json({ error: "not_found" }, 404);
+  if (row.user_id !== me.id && !(await leagueMates(db, me.id, row.user_id))) return c.json({ error: "not_found" }, 404);
+  return new Response(new Uint8Array(row.data as ArrayBuffer), { headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, no-store" } });
+});
+
+app.post("/api/photo/:token/flag", async (c) => {
+  const db = c.env.DB;
+  const me = await currentUser(c);
+  if (!me) return c.json({ error: "auth" }, 401);
+  if (isOpen(c.env) !== "open") return c.json({ error: "closed" }, 409);
+  const row = await db.prepare("SELECT user_id FROM photos WHERE token = ?").bind(param(c, "token")).first<{ user_id: string }>();
+  if (!row || row.user_id === me.id || !(await leagueMates(db, me.id, row.user_id))) return c.json({ error: "not_found" }, 404);
+  await db.prepare("INSERT OR IGNORE INTO photo_flags (user_id, flagger_id, created_at) VALUES (?, ?, ?)").bind(row.user_id, me.id, Date.now()).run();
+  const n = await db.prepare("SELECT COUNT(*) AS n FROM photo_flags WHERE user_id = ?").bind(row.user_id).first<{ n: number }>();
+  if ((n?.n ?? 0) >= FLAGS_TO_HIDE) await db.prepare("UPDATE photos SET hidden = 1 WHERE user_id = ?").bind(row.user_id).run();
+  return c.json({ ok: true, flags: n?.n ?? 0 });
 });
 
 // ---------- the national pulse ----------
@@ -499,6 +585,8 @@ app.post("/api/leave", async (c) => {
   await c.env.DB.batch([
     c.env.DB.prepare("UPDATE users SET name = 'עלה אנונימי', key_hash = '', confirm_code = NULL WHERE id = ?").bind(user.id),
     c.env.DB.prepare("DELETE FROM league_members WHERE user_id = ?").bind(user.id),
+    c.env.DB.prepare("DELETE FROM photos WHERE user_id = ?").bind(user.id),
+    c.env.DB.prepare("DELETE FROM photo_flags WHERE user_id = ? OR flagger_id = ?").bind(user.id, user.id),
   ]);
   deleteCookie(c, COOKIE, { path: "/", secure: true });
   return c.json({ ok: true });
@@ -534,4 +622,10 @@ app.get("/c/:code", async (c) => {
   return preview(c, row ? `חותמת עד ל־${row.name}` : null, "ראית את המעטפה נכנסת לקלפי? חותמת עד אחת שווה 10 טיפות.");
 });
 
-export default app;
+// Election night: every polling-station photo is deleted once marking closes.
+async function scheduled(_: ScheduledController, env: Env) {
+  if (Date.now() < MARKING_CLOSES) return;
+  await env.DB.batch([env.DB.prepare("DELETE FROM photos"), env.DB.prepare("DELETE FROM photo_flags")]);
+}
+
+export default { fetch: app.fetch, scheduled } satisfies ExportedHandler<Env>;
