@@ -1348,26 +1348,3 @@ export function OgCard() {
     </div>
   );
 }
-
-// ---------- temporary art review grid (removed before deploy) ----------
-
-const ART_TREES = {
-  small: demoTree(3, 4, 2, 3),
-  medium: demoTree(11, 40, 3, 5),
-  large: demoTree(5, 400, 6, 8),
-};
-
-export function ArtLab() {
-  const p = new URLSearchParams(location.search);
-  const size = (p.get("size") ?? "medium") as keyof typeof ART_TREES;
-  const hour = Number(p.get("h") ?? 9);
-  const species = p.get("sp") ?? "olive";
-  const lvl = Number(p.get("lvl") ?? 3);
-  const nodes = ART_TREES[size] ?? ART_TREES.medium;
-  const gold = new Set(nodes.filter((n) => n.t != null && n.t < hour).map((n) => n.i));
-  return (
-    <div className="artlab">
-      <Scene nodes={nodes} votedAt={(i) => gold.has(i)} hour={hour} species={species} levelIndex={lvl} ballots={gold.size} stamps={{ voted: gold.has(0), witnessed: gold.has(0) }} ghosts={size === "small" ? 2 : 0} label="art" animate={false} />
-    </div>
-  );
-}

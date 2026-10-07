@@ -334,12 +334,12 @@ input:focus-visible { outline: var(--px) solid var(--gold); outline-offset: var(
 .counters-col { grid-template-columns: repeat(3, 1fr); margin: 0; }
 
 /* ---- link-preview card, 1200x630 ---- */
-.og { width: 1200px; height: 630px; position: relative; overflow: hidden; }
-.og-scene { position: absolute; inset: 0; width: 1200px; height: 630px; aspect-ratio: auto; }
-.og-copy { position: absolute; inset-block-start: 50px; inset-inline-start: 70px; width: 560px; }
+.og { width: 1200px; height: 630px; position: relative; overflow: hidden; background: #c7dcd0; }
+.og-scene { position: absolute; top: 0; left: 0; width: 640px; height: 630px; aspect-ratio: auto; box-shadow: 6px 0 0 #2e222f; }
+.og-copy { position: absolute; inset-block-start: 70px; inset-inline-start: 50px; width: 470px; }
 .og .title { font-size: 128px; }
 .og .chip { font-size: 26px; }
-.og-copy p:last-child { margin-top: 22px; font-size: 32px; line-height: 1.3; color: #fff; font-weight: 800; text-shadow: 3px 3px 0 #2e222f; }
+.og-copy p:last-child { margin-top: 30px; font-size: 34px; line-height: 1.3; color: #2e222f; font-weight: 800; }
 
 /* ---- motion ---- */
 @keyframes hop { 50% { transform: translateY(-4px); } }
@@ -378,7 +378,6 @@ input:focus-visible { outline: var(--px) solid var(--gold); outline-offset: var(
   .game-lower .badges, .game-lower .account { grid-column: 1 / -1; }
 }
 
-.artlab .scene { width: 100%; height: 100vh; aspect-ratio: auto; }
 
 /* numbers: vector, heavy, fixed-width digits */
 .counters dd, .drops, .demo-clock, .slip-count b, .q-reward, .streak, .drops-table td, .p-medal, .r-n, .pulse b, .xp em, .head-chip { font-weight: 800; font-variant-numeric: tabular-nums; }

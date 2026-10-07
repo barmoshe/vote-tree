@@ -6,7 +6,7 @@ import "./app.css";
 import { Link, usePath } from "./router";
 import { Confetti } from "./fx";
 import { Icon } from "./icons";
-import { About, ArtLab, Demo, Home, LeagueView, Leagues, MyTree, OgCard, Restore, WitnessPage } from "./pages";
+import { About, Demo, Home, LeagueView, Leagues, MyTree, OgCard, Restore, WitnessPage } from "./pages";
 import { ELECTION_DATE_LABEL } from "../shared/election";
 
 const TITLES: Record<string, string> = {
@@ -60,7 +60,6 @@ function App() {
   }, [path]);
 
   if (path === "/og-card") return <OgCard />;
-  if (path === "/art") return <ArtLab />;
 
   return (
     <>
