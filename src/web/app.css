@@ -392,6 +392,31 @@ input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="
 .demo-row { flex-wrap: nowrap; }
 .demo-row .btn-big { flex: 1; width: auto; }
 
+/* the demo's timeline: before | election day, with a visible split */
+.timeline { position: relative; }
+.timeline::after { content: ""; position: absolute; top: 0.1rem; inset-inline-start: var(--split); width: var(--px); height: 1.3rem; background: var(--gold-deep); pointer-events: none; }
+.timeline-labels { display: flex; font-size: var(--step--2); font-weight: 700; color: var(--text-faint); }
+.timeline-labels span:first-child { flex: 0 0 var(--split); }
+.timeline-labels .on { color: var(--flag); }
+.timeline-labels .on.gold { color: var(--gold-deep); }
+
+/* the moment the demo turns into election day */
+.world { position: relative; }
+.day-card {
+  position: absolute; z-index: 5; top: 50%; left: 50%; width: min(19rem, calc(100% - 2rem)); transform: translate(-50%, -50%);
+  display: grid; justify-items: center; gap: var(--space-1); text-align: center;
+  background: var(--paper); color: var(--ink); padding: calc(var(--space-5) + 6px) var(--space-4); box-shadow: var(--frame-drop);
+  animation: day-in 360ms steps(6);
+}
+.day-card::before, .day-card::after { content: ""; position: absolute; inset-inline: 0; height: 12px; background: linear-gradient(var(--flag) 0 3px, transparent 3px 9px, var(--flag) 9px 12px); }
+.day-card::before { top: 8px; }
+.day-card::after { bottom: 8px; }
+.day-card .icon { color: var(--flag); }
+.day-card h2 { margin: 0; font-size: var(--step-3); }
+.day-card-kicker { font-weight: 700; color: var(--text-faint); }
+@keyframes day-in { from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .day-card { animation: none; } }
+
 /* ---- the bottom sheet ---- */
 .sheet {
   margin: auto auto 0; width: min(100%, 40rem); max-width: 100%; max-height: 86dvh; padding: 0; border: 0;

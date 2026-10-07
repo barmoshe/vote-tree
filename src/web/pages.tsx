@@ -1538,6 +1538,29 @@ export function Demo() {
   }, [playing]);
 
   const growing = t < GROW;
+
+  // Crossing into election day gets its own moment: a pause and a card over the scene.
+  const [announce, setAnnounce] = useState(false);
+  const wasGrowing = useRef(growing);
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  useEffect(() => {
+    const was = wasGrowing.current;
+    wasGrowing.current = growing;
+    if (growing) {
+      setAnnounce(false);
+      return;
+    }
+    if (!was) return;
+    const resume = playingRef.current;
+    setPlaying(false);
+    setAnnounce(true);
+    const id = setTimeout(() => {
+      setAnnounce(false);
+      if (resume) setPlaying(true);
+    }, 2600);
+    return () => clearTimeout(id);
+  }, [growing]);
   const day = growing ? (t / GROW) * STORY_DAYS : STORY_DAYS;
   const hour = growing ? 15.5 : DAY_START + ((t - GROW) / (1 - GROW)) * (DAY_END - DAY_START);
   const daysLeft = Math.max(0, Math.ceil(STORY_DAYS - day));
@@ -1593,8 +1616,16 @@ export function Demo() {
       <Icon name={playing ? "pause" : t >= 1 ? "replay" : "play"} /> {playing ? "עצירה" : t >= 1 ? "מההתחלה" : t > 0 ? "המשך" : "הפעלה"}
     </button>
   );
+  const dayCard = announce && (
+    <div className="day-card" role="status" aria-live="assertive">
+      <Icon name="ballot" size={40} />
+      <p className="day-card-kicker">שלושה שבועות עברו</p>
+      <h2>יום הבחירות</h2>
+      <p>יום שלישי, {ELECTION_DATE_LABEL} · הקלפיות נפתחות ב־07:00</p>
+    </div>
+  );
   const slider = (
-    <label className="slider">
+    <label className="slider timeline" style={{ ["--split" as string]: `${GROW * 100}%` }}>
       <span className="sr-only">{growing ? "השבועות שלפני" : "השעות של יום הבחירות"}</span>
       <input
         type="range"
@@ -1608,6 +1639,10 @@ export function Demo() {
         }}
         aria-valuetext={growing ? `עוד ${daysLeft} ימים לבחירות` : clock(hour)}
       />
+      <span className="timeline-labels" aria-hidden="true">
+        <span className={growing ? "on" : ""}>שלושה שבועות לפני</span>
+        <span className={growing ? "" : "on gold"}>יום הבחירות</span>
+      </span>
     </label>
   );
 
@@ -1643,6 +1678,7 @@ export function Demo() {
           </span>
         </div>
         <p className="phone-tally">{chapter} · הדגמה, לא נתונים אמיתיים</p>
+        {dayCard}
         <div className="phone-dock" ref={dock}>
           {feed[0] && (
             <p className={`demo-toast ${feed[0].gold ? "gold" : ""}`} aria-live="polite">
@@ -1680,6 +1716,7 @@ export function Demo() {
             animate={false}
             label={growing ? `העץ ביום ${Math.floor(day)} מתוך ${STORY_DAYS}: ${stats.people} אנשים` : `יום הבחירות בשעה ${clock(hour)}: ${stats.voted} מתוך ${stats.people + 1} הצביעו`}
           />
+          {dayCard}
           <figcaption>{chapter}</figcaption>
         </figure>
         <div className="demo-side">
@@ -1711,21 +1748,7 @@ export function Demo() {
               לקפוץ ליום הבחירות
             </button>
           </div>
-          <label className="slider">
-            <span>{growing ? "השבועות שלפני" : "השעות של יום הבחירות"}</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.002}
-              value={t}
-              onChange={(e) => {
-                setPlaying(false);
-                setT(Number(e.target.value));
-              }}
-              aria-valuetext={growing ? `עוד ${daysLeft} ימים לבחירות` : clock(hour)}
-            />
-          </label>
+          {slider}
           <ol className="feed" aria-live="polite">
             {feed.map((f) => (
               <li key={f.key} className={f.gold ? "gold" : ""}>
