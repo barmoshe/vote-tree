@@ -35,3 +35,26 @@ export function demoTree(seed = 27, maxNodes = 120, maxDepth = 5, directKids = 6
   }
   return nodes;
 }
+
+// The demo's story: who joined when over the three weeks before the election, with a name for
+// everyone (made up) so the caption feed can tell it.
+const FIRST = ["נועה", "איתי", "מאיה", "יוסי", "רותם", "דנה", "עומר", "שירה", "אבי", "ליאור", "תמר", "גל", "יעל", "אורי", "הדר", "רועי", "ענבל", "אלון", "מיכל", "עידו", "שקד", "נדב", "רוני", "טל", "אסף", "ליה", "גיא", "עדי", "אריאל", "נגה"];
+
+export type StoryNode = DemoNode & { name: string; day: number };
+
+export const STORY_DAYS = 20;
+
+export function demoStory(seed = 27): StoryNode[] {
+  const nodes = demoTree(seed, 120, 5, 6);
+  const r = rng(seed * 7 + 1);
+  const out: StoryNode[] = [];
+  for (const n of nodes) {
+    const i = n.i;
+    const parentDay = n.p == null ? 0 : out[n.p].day;
+    // Joins bunch up over time, the way word of mouth spreads; never before the inviter.
+    const base = STORY_DAYS * Math.pow(i / nodes.length, 0.8);
+    const day = n.p == null ? 0 : Math.min(STORY_DAYS - 0.2, Math.max(parentDay + 0.3 + r() * 0.6, base + (r() - 0.5) * 1.5));
+    out.push({ ...n, name: i === 0 ? "אני" : FIRST[(i * 7 + Math.floor(r() * 3)) % FIRST.length], day });
+  }
+  return out;
+}

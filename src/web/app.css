@@ -392,3 +392,14 @@ input:focus-visible { outline: var(--px) solid var(--gold); outline-offset: var(
 .proof-img.big { max-height: 60vh; object-fit: contain; background: #2e222f; }
 .photo-btn { min-height: 2rem; padding: 0 var(--space-2); }
 .ranks li .photo-btn { grid-area: photo; }
+
+/* demo caption feed */
+.feed { list-style: none; padding: 0; display: grid; gap: var(--space-2); min-height: 9.5rem; }
+.feed li { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-2); align-items: center; background: var(--surface); margin: var(--px); padding: var(--space-2) var(--space-3); box-shadow: var(--frame); animation: rise 240ms steps(3); font-size: var(--step--1); }
+.feed li:first-child { background: #dff5d0; }
+.feed li.gold:first-child { background: var(--gold-glow); }
+.feed li .icon { color: var(--leaf-deep); }
+.feed li.gold .icon { color: var(--gold-deep); }
+.feed span { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.demo-jumps { justify-content: center; }
+.counters-col dt { font-size: 0.7rem; }

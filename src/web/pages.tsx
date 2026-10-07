@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { api, errorText } from "./api";
 import { Link, navigate } from "./router";
 import { LeafChip, Scene } from "./Scene";
-import { demoTree } from "./demoTree";
+import { demoStory, demoTree, STORY_DAYS } from "./demoTree";
 import { celebrate, Modal } from "./fx";
 import { Icon } from "./icons";
 import { download, preparePhoto, shareOrDownload, storyCard, voteIcs } from "./share";
@@ -1212,12 +1212,13 @@ export function WitnessPage({ code }: { code: string }) {
   );
 }
 
-// ---------- demo ----------
+// ---------- demo: three weeks of growing, then election day ----------
 
-const DEMO = demoTree(27, 120, 5, 6);
-const START = 6.5;
-const END = 22;
-const RUN_MS = 22_000;
+const STORY = demoStory(27);
+const RUN_MS = 32_000;
+const GROW = 0.55; // share of the timeline spent on the weeks before
+const DAY_START = 6.5;
+const DAY_END = 22;
 
 function clock(h: number) {
   const hh = Math.floor(h);
@@ -1226,7 +1227,7 @@ function clock(h: number) {
 }
 
 export function Demo() {
-  const [hour, setHour] = useState(START);
+  const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const raf = useRef(0);
 
@@ -1236,9 +1237,9 @@ export function Demo() {
     const tick = (now: number) => {
       const dt = now - last;
       last = now;
-      setHour((h) => {
-        const next = Math.min(END, h + ((END - START) * dt) / RUN_MS);
-        if (next >= END) setPlaying(false);
+      setT((v) => {
+        const next = Math.min(1, v + dt / RUN_MS);
+        if (next >= 1) setPlaying(false);
         return next;
       });
       raf.current = requestAnimationFrame(tick);
@@ -1247,101 +1248,141 @@ export function Demo() {
     return () => cancelAnimationFrame(raf.current);
   }, [playing]);
 
+  const growing = t < GROW;
+  const day = growing ? (t / GROW) * STORY_DAYS : STORY_DAYS;
+  const hour = growing ? 15.5 : DAY_START + ((t - GROW) / (1 - GROW)) * (DAY_END - DAY_START);
+  const daysLeft = Math.max(0, Math.ceil(STORY_DAYS - day));
+
+  // Only people who have joined by now are on the tree; their parents always joined earlier.
+  const joinedCount = useMemo(() => STORY.filter((n) => n.day <= day).length, [day]);
+  const nodes = useMemo(() => STORY.filter((n) => n.day <= day), [joinedCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  const votedAt = (i: number) => !growing && STORY[i].t != null && STORY[i].t! <= hour;
+
   const stats = useMemo(() => {
-    const parent = new Map(DEMO.map((n) => [n.i, n.p]));
-    const depthOf = (i: number) => {
-      let d = 0;
-      for (let p = parent.get(i); p != null; p = parent.get(p)) d++;
-      return d;
-    };
-    let total = 0,
-      voted = 0,
+    let voted = 0,
       direct = 0,
       directVoted = 0;
-    for (const n of DEMO.slice(1)) {
-      total++;
-      const v = n.t != null && n.t <= hour;
+    for (const n of nodes.slice(1)) {
+      const v = !growing && n.t != null && n.t <= hour;
       if (v) voted++;
-      if (depthOf(n.i) === 1) {
+      if (n.p === 0) {
         direct++;
         if (v) directVoted++;
       }
     }
-    const meVoted = DEMO[0].t! <= hour;
-    const pts = pointsOf({ voted: meVoted, planned: true, confirmed: meVoted && hour > 9, photo: meVoted && hour > 8.6, watered: 7, directJoined: direct, directVoted, totalVoted: voted });
-    return { total, voted: voted + (meVoted ? 1 : 0), pts, meVoted };
-  }, [hour]);
+    const meVoted = !growing && STORY[0].t! <= hour;
+    const watered = Math.min(Math.floor(day), STORY_DAYS);
+    const pts = pointsOf({ voted: meVoted, planned: day > 3, confirmed: meVoted && hour > 9, photo: meVoted && hour > 8.6, watered, directJoined: direct, directVoted, totalVoted: voted });
+    return { people: nodes.length - 1, voted: voted + (meVoted ? 1 : 0), pts, meVoted };
+  }, [nodes, growing, hour, day]);
 
-  const votedAt = (i: number) => {
-    const t = DEMO[i].t;
-    return t != null && t <= hour;
-  };
+  // The caption feed: the latest few events, newest first.
+  const feed = useMemo(() => {
+    if (growing) {
+      return STORY.filter((n) => n.i > 0 && n.day <= day)
+        .sort((a, b) => b.day - a.day)
+        .slice(0, 4)
+        .map((n) => ({ key: `j${n.i}`, text: n.name, sub: n.p === 0 ? "הצטרפות דרך הקישור שלך" : `הצטרפות דרך ${STORY[n.p!].name}`, gold: false }));
+    }
+    return STORY.filter((n) => n.t != null && n.t <= hour)
+      .sort((a, b) => b.t! - a.t!)
+      .slice(0, 4)
+      .map((n) => ({ key: `v${n.i}`, text: n.i === 0 ? "הפתק שלך" : n.name, sub: `פתק זהב · ${clock(n.t!)}`, gold: true }));
+  }, [growing, day, hour]);
+
   const lv = level(stats.pts);
+  const chapter = growing ? (day < 2 ? "שותלים עץ" : day < 9 ? "החברים הראשונים מצטרפים" : "חברים של חברים") : hour < 12 ? "יום הבחירות: בוקר" : hour < 18 ? "יום הבחירות: צהריים" : "יום הבחירות: ערב";
 
   return (
     <div className="container page demo">
-      <p className="chip"><Icon name="play" /> הדגמה · עץ מומצא, לא נתונים אמיתיים</p>
-      <h1>יום בחירות בעץ אחד</h1>
+      <p className="chip">
+        <Icon name="play" /> הדגמה · עץ מומצא, לא נתונים אמיתיים
+      </p>
+      <h1>מעציץ ליער, בחצי דקה</h1>
       <div className="demo-grid">
         <figure className="world">
           <Scene
-            nodes={DEMO}
+            nodes={nodes}
             votedAt={votedAt}
             hour={hour}
             species="almond"
             levelIndex={lv.index}
             ballots={stats.voted}
             stamps={{ voted: stats.meVoted, witnessed: stats.meVoted && hour > 9 }}
-            showNames={false}
+            showNames={nodes.length <= 40}
             animate={false}
-            label={`עץ הדגמה בשעה ${clock(hour)}: ${stats.voted} מתוך ${stats.total + 1} הצביעו`}
+            label={growing ? `העץ ביום ${Math.floor(day)} מתוך ${STORY_DAYS}: ${stats.people} אנשים` : `יום הבחירות בשעה ${clock(hour)}: ${stats.voted} מתוך ${stats.people + 1} הצביעו`}
           />
+          <figcaption>{chapter}</figcaption>
         </figure>
         <div className="demo-side">
           <Slip>
-            <p className="demo-clock">{clock(hour)}</p>
-            <p>יום שלישי, {ELECTION_DATE_LABEL}</p>
+            {growing ? (
+              <p className="slip-count">
+                <b>{daysLeft}</b> ימים לבחירות
+              </p>
+            ) : (
+              <>
+                <p className="demo-clock">{clock(hour)}</p>
+                <p>יום שלישי, {ELECTION_DATE_LABEL}</p>
+              </>
+            )}
           </Slip>
-          <button
-            className="btn btn-big"
-            onClick={() => {
-              if (hour >= END) setHour(START);
-              setPlaying((p) => !p);
-            }}
-          >
-            <Icon name={playing ? "pause" : hour >= END ? "replay" : "play"} /> {playing ? "עצירה" : hour >= END ? "מההתחלה" : "הפעלה"}
-          </button>
+          <div className="row">
+            <button
+              className="btn btn-big"
+              onClick={() => {
+                if (t >= 1) setT(0);
+                setPlaying((p) => !p);
+              }}
+            >
+              <Icon name={playing ? "pause" : t >= 1 ? "replay" : "play"} /> {playing ? "עצירה" : t >= 1 ? "מההתחלה" : t > 0 ? "המשך" : "הפעלה"}
+            </button>
+          </div>
+          <div className="row demo-jumps">
+            <button className="btn btn-ghost btn-small" onClick={() => { setPlaying(false); setT(0); }}>
+              הצמיחה
+            </button>
+            <button className="btn btn-ghost btn-small" onClick={() => { setPlaying(false); setT(GROW + 0.001); }}>
+              יום הבחירות
+            </button>
+          </div>
           <label className="slider">
-            <span>שעה ביום הבחירות</span>
+            <span>{growing ? "השבועות שלפני" : "השעות של יום הבחירות"}</span>
             <input
               type="range"
-              min={START}
-              max={END}
-              step={0.05}
-              value={hour}
+              min={0}
+              max={1}
+              step={0.002}
+              value={t}
               onChange={(e) => {
                 setPlaying(false);
-                setHour(Number(e.target.value));
+                setT(Number(e.target.value));
               }}
-              aria-valuetext={clock(hour)}
+              aria-valuetext={growing ? `עוד ${daysLeft} ימים לבחירות` : clock(hour)}
             />
           </label>
+          <ol className="feed" aria-live="polite">
+            {feed.map((f) => (
+              <li key={f.key} className={f.gold ? "gold" : ""}>
+                <Icon name={f.gold ? "ballot" : "sprout"} size={14} />
+                <b>{f.text}</b>
+                <span>{f.sub}</span>
+              </li>
+            ))}
+          </ol>
           <dl className="counters counters-col">
+            <div>
+              <dt>בעץ</dt>
+              <dd>{stats.people}</dd>
+            </div>
             <div className="gold">
               <dt>פתקי זהב</dt>
-              <dd>
-                {stats.voted} <small>מתוך {stats.total + 1}</small>
-              </dd>
+              <dd>{stats.voted}</dd>
             </div>
             <div>
-              <dt>טיפות</dt>
+              <dt>טיפות · {lv.name}</dt>
               <dd>{stats.pts}</dd>
-            </div>
-            <div>
-              <dt>דרגה</dt>
-              <dd>
-                <Icon name={lv.icon} size={30} /> {lv.name}
-              </dd>
             </div>
           </dl>
           <Link className="btn btn-ghost" href="/">
