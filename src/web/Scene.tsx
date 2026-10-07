@@ -25,6 +25,7 @@ export function useIsraelHour() {
 
 const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ART_W = 180; // target width in art pixels
+const ART_H = 140; // and height
 
 type Props = {
   nodes: TreeNode[];
@@ -76,7 +77,8 @@ export function Scene({
     const ro = new ResizeObserver(() => {
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      const s = Math.max(2, Math.round(r.width / ART_W));
+      // The tighter of width and height sets the pixel size, so a wide hero becomes a panorama.
+      const s = Math.max(2, Math.round(Math.min(r.width / ART_W, r.height / ART_H)));
       setSize({ w: Math.ceil(r.width / s), h: Math.ceil(r.height / s), s });
     });
     ro.observe(el);
@@ -230,10 +232,10 @@ function VectorLayer({ a, w, h, stamps, drop }: { a: Anchors; w: number; h: numb
       {a.flag && (
         <g transform={`translate(${a.flag[0] + 0.5},${a.flag[1]})`}>
           <g className="v-flag">
-            <rect width="11" height="8" fill="#ffffff" stroke="#2e222f" strokeWidth="0.5" />
-            <rect y="1" width="11" height="1.1" fill="#4d65b4" />
-            <rect y="5.9" width="11" height="1.1" fill="#4d65b4" />
-            <path d="M5.5,2.55 L6.75,4.7 L4.25,4.7Z M5.5,5.45 L4.25,3.3 L6.75,3.3Z" fill="none" stroke="#4d65b4" strokeWidth="0.42" strokeLinejoin="round" />
+            <rect width="11" height="8" fill={C.white} stroke={C.ink} strokeWidth="0.5" />
+            <rect y="1" width="11" height="1.1" fill={C.blue} />
+            <rect y="5.9" width="11" height="1.1" fill={C.blue} />
+            <path d="M5.5,2.55 L6.75,4.7 L4.25,4.7Z M5.5,5.45 L4.25,3.3 L6.75,3.3Z" fill="none" stroke={C.blue} strokeWidth="0.42" strokeLinejoin="round" />
           </g>
         </g>
       )}
@@ -241,31 +243,28 @@ function VectorLayer({ a, w, h, stamps, drop }: { a: Anchors; w: number; h: numb
       {/* empty invite slots: dashed gold circles with a plus, waiting for a friend */}
       {a.ghosts.map(([gx, gy, r], k) => (
         <g key={k} transform={`translate(${gx},${gy})`} className="v-ghost" style={{ animationDelay: `${k * 0.3}s` }}>
-          <circle r={Math.max(4, r + 1.5)} fill="rgb(255 255 255 / 0.55)" stroke="#f79617" strokeWidth="0.8" strokeDasharray="1.6 1.2" />
-          <path d="M-1.8,0 H1.8 M0,-1.8 V1.8" stroke="#f79617" strokeWidth="0.9" strokeLinecap="round" />
+          <circle r={Math.max(4, r + 1.5)} fill="rgb(255 255 255 / 0.6)" stroke={C.amber} strokeWidth="0.8" strokeDasharray="1.6 1.2" />
+          <path d="M-1.8,0 H1.8 M0,-1.8 V1.8" stroke={C.amber} strokeWidth="0.9" strokeLinecap="round" />
         </g>
       ))}
 
       {/* the cardboard ballot box */}
       <g strokeLinejoin="round">
-        <path d={`M${x + bw},${y + 3} L${x + bw + 4},${y + 1} L${x + bw + 4},${y + bh - 2} L${x + bw},${y + bh}Z`} fill="#cd683d" stroke="#2e222f" strokeWidth="1" />
-        <rect x={x} y={y + 3} width={bw} height={bh - 3} fill="#e6904e" stroke="#2e222f" strokeWidth="1" />
-        {Array.from({ length: Math.floor(bw / 3) - 1 }, (_, k) => (
-          <line key={k} x1={x + 3 + k * 3} y1={y + 5} x2={x + 3 + k * 3} y2={y + bh - 1} stroke="#cd683d" strokeWidth="0.5" />
-        ))}
-        <path d={`M${x - 1},${y + 3} L${x + 3},${y} L${x + bw + 4},${y} L${x + bw},${y + 3}Z`} fill="#4d65b4" stroke="#2e222f" strokeWidth="1" />
-        <rect x={x - 1} y={y + 3} width={bw + 1} height="2" fill="#484a77" stroke="#2e222f" strokeWidth="1" />
-        <rect x={cx - 6} y={y + 1.1} width="13" height="1.1" fill="#2e222f" />
-        <rect x={x + 6} y={y + 8} width={bw - 12} height="10" fill="#ffffff" stroke="#2e222f" strokeWidth="0.6" />
-        <rect x={x + 6} y={y + 9.2} width={bw - 12} height="0.9" fill="#4d65b4" />
-        <rect x={x + 6} y={y + 15.9} width={bw - 12} height="0.9" fill="#4d65b4" />
+        <path d={`M${x + bw},${y + 3} L${x + bw + 4},${y + 1} L${x + bw + 4},${y + bh - 2} L${x + bw},${y + bh}Z`} fill={C.pale} stroke={C.ink} strokeWidth="1" />
+        <rect x={x} y={y + 3} width={bw} height={bh - 3} fill={C.white} stroke={C.ink} strokeWidth="1" />
+        <path d={`M${x - 1},${y + 3} L${x + 3},${y} L${x + bw + 4},${y} L${x + bw},${y + 3}Z`} fill={C.blue} stroke={C.ink} strokeWidth="1" />
+        <rect x={x - 1} y={y + 3} width={bw + 1} height="2" fill={C.navy} stroke={C.ink} strokeWidth="1" />
+        <rect x={cx - 6} y={y + 1.1} width="13" height="1.1" fill={C.ink} />
+        <rect x={x + 6} y={y + 8} width={bw - 12} height="10" fill={C.white} stroke={C.ink} strokeWidth="0.6" />
+        <rect x={x + 6} y={y + 9.2} width={bw - 12} height="0.9" fill={C.blue} />
+        <rect x={x + 6} y={y + 15.9} width={bw - 12} height="0.9" fill={C.blue} />
         <text x={cx} y={y + 14.4} textAnchor="middle" className="v-label">
           קלפי
         </text>
       </g>
       {stamps?.voted && (
         <g transform={`translate(${x + 7},${y + bh - 2.5}) rotate(-10)`} className="v-stamp">
-          <rect x="-7" y="-2.6" width="14" height="5.2" rx="1" fill="none" stroke="#b33831" strokeWidth="0.6" />
+          <rect x="-7" y="-2.6" width="14" height="5.2" rx="1" fill="none" stroke={C.red} strokeWidth="0.6" />
           <text textAnchor="middle" y="1.3" className="v-stamp-text">
             הצבעתי
           </text>
@@ -273,7 +272,7 @@ function VectorLayer({ a, w, h, stamps, drop }: { a: Anchors; w: number; h: numb
       )}
       {stamps?.witnessed && (
         <g transform={`translate(${x + bw - 5},${y + bh - 3.5}) rotate(12)`} className="v-stamp">
-          <circle r="3.4" fill="none" stroke="#b33831" strokeWidth="0.6" />
+          <circle r="3.4" fill="none" stroke={C.red} strokeWidth="0.6" />
           <text textAnchor="middle" y="1.2" className="v-stamp-text">
             עד
           </text>
@@ -282,8 +281,8 @@ function VectorLayer({ a, w, h, stamps, drop }: { a: Anchors; w: number; h: numb
       {drop > 0 && (
         <g key={drop} transform={`translate(${cx - 4},${y - 4})`}>
           <g className="v-envelope">
-            <rect width="8" height="5" fill="#4d65b4" stroke="#2e222f" strokeWidth="0.5" />
-            <path d="M0,0 L4,2.8 L8,0" fill="none" stroke="#8fd3ff" strokeWidth="0.5" />
+            <rect width="8" height="5" fill={C.royal} stroke={C.ink} strokeWidth="0.5" />
+            <path d="M0,0 L4,2.8 L8,0" fill="none" stroke={C.trayLight} strokeWidth="0.5" />
           </g>
         </g>
       )}

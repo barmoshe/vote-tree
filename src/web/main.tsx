@@ -7,7 +7,6 @@ import { Link, usePath } from "./router";
 import { Confetti } from "./fx";
 import { Icon } from "./icons";
 import { About, Demo, Home, LeagueView, Leagues, MyTree, OgCard, Restore, WitnessPage } from "./pages";
-import { ELECTION_DATE_LABEL } from "../shared/election";
 
 const TITLES: Record<string, string> = {
   "/tree": "העץ שלי",
@@ -72,7 +71,6 @@ function App() {
             <img src="/icon.svg" alt="" width="32" height="32" className="brand-mark" />
             עץ ההצבעה
           </Link>
-          <span className="head-chip"><Icon name="ballot" size={12} /> {ELECTION_DATE_LABEL}</span>
           <nav className="tabs" aria-label="ראשי">
             {TABS.map(([href, icon, label]) => (
               <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
@@ -86,11 +84,11 @@ function App() {
       <main id="main" tabIndex={-1}>
         <Page path={path} />
       </main>
-      <footer className="site-foot">
+      {(path === "/" || path === "/about" || path.startsWith("/j/")) && <footer className="site-foot">
         <div className="container">
           <p>נבנה בהאקתון בחירות 2026. לא קשור לשום מפלגה. לא שואלים, לא שומרים ולא מציגים במי בחרת.</p>
         </div>
-      </footer>
+      </footer>}
       <Confetti />
     </>
   );

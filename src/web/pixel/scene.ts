@@ -23,30 +23,30 @@ export type Anchors = {
 };
 
 type Mood = "night" | "golden" | "day";
-type Shades = { deep: string; mid: string; light: string; hi: string; fruit?: string };
+type Shades = { shadow: string; deep: string; mid: string; light: string; hi: string; fruit?: string };
 
 export const SPECIES_PIX: Record<string, Shades> = {
-  olive: { deep: C.sageDeep, mid: C.sage, light: C.sageLight, hi: C.sagePale },
-  fig: { deep: C.pineDeep, mid: C.pine, light: C.green, hi: C.leaf },
-  almond: { deep: C.pinkDeep, mid: C.pink, light: C.peach, hi: C.blush },
-  oak: { deep: C.brownDeep, mid: C.olive, light: C.oliveLight, hi: C.lime },
-  pomegranate: { deep: C.pineDeep, mid: C.pine, light: C.green, hi: C.leaf, fruit: C.anemone },
-  cedar: { deep: C.navy, mid: C.teal, light: C.pine, hi: C.green },
+  // the default: the sky-blue of the ballot tray, so a growing tree reads as election day
+  olive: { shadow: "#2b5f9a", deep: C.trayDeep, mid: C.skyLight, light: C.trayLight, hi: C.white },
+  fig: { shadow: "#173f37", deep: C.pineDeep, mid: C.pine, light: C.green, hi: C.leaf },
+  almond: { shadow: "#9c3f5c", deep: C.pinkDeep, mid: C.pink, light: C.peach, hi: C.blush },
+  oak: { shadow: "#1f3f2a", deep: C.sageDeep, mid: C.olive, light: C.oliveLight, hi: C.lime },
+  pomegranate: { shadow: "#173f37", deep: C.pineDeep, mid: C.pine, light: C.green, hi: C.leaf, fruit: C.anemone },
+  cedar: { shadow: "#13342f", deep: C.pineDeep, mid: C.teal, light: C.pine, hi: C.green },
 };
-export const GOLD: Shades = { deep: C.amber, mid: C.gold, light: C.goldLight, hi: C.goldGlow };
-const BARK = { deep: C.barkDeep, mid: "#694f62", light: C.mauve };
+export const GOLD: Shades = { shadow: C.amber, deep: C.amber, mid: C.gold, light: C.goldLight, hi: C.goldGlow };
+const BARK = { deep: C.barkDeep, mid: "#4b3c4a", light: "#76616c" };
 
-// Sky moods, straight from the palette: top, middle, horizon.
-const SKIES: [number, Mood, string, string, string][] = [
-  [0, "night", C.ink, C.navy, C.indigo],
-  [5.4, "golden", C.navy, C.indigo, C.lilac],
-  [6.4, "golden", C.indigo, C.lilac, C.orange],
-  [7.6, "day", C.blue, C.sky, C.blush],
-  [9.5, "day", C.sky, C.skyLight, C.pale],
-  [16.8, "day", C.blue, C.sky, C.blush],
-  [18, "golden", C.indigo, C.pinkDeep, C.goldLight],
-  [19.2, "golden", C.navy, C.violet, C.orange],
-  [20.3, "night", C.ink, C.navy, C.indigo],
+// Sky moods: five bands each, top to horizon. Day is flag-blue to white.
+const SKIES: [number, Mood, string[]][] = [
+  [0, "night", [C.ink, C.ink, C.navy, C.navy, C.indigo]],
+  [5.4, "golden", [C.navy, C.indigo, C.violet, C.lilac, C.peach]],
+  [6.4, "golden", [C.indigo, C.violet, C.lilac, C.orange, C.goldLight]],
+  [7.6, "day", [C.royal, C.sky, C.skyLight, C.trayLight, C.white]],
+  [16.8, "day", [C.royal, C.sky, C.skyLight, C.trayLight, C.blush]],
+  [18, "golden", [C.indigo, C.violet, C.pinkDeep, C.orange, C.goldLight]],
+  [19.2, "golden", [C.navy, C.indigo, C.violet, C.pinkDeep, C.orange]],
+  [20.3, "night", [C.ink, C.ink, C.navy, C.navy, C.indigo]],
 ];
 function skyAt(h: number) {
   let s = SKIES[0];
@@ -55,8 +55,8 @@ function skyAt(h: number) {
 }
 
 const LAND: Record<Mood, { ridge: string; ridge2: string; hills: string; terrace: string; grove: string; meadow: string; meadow2: string; front: string; front2: string; knesset: string; knessetDark: string }> = {
-  day: { ridge: C.mist, ridge2: C.pale, hills: C.stone, terrace: C.mauve, grove: C.sageDeep, meadow: C.sage, meadow2: C.sageLight, front: C.olive, front2: C.oliveLight, knesset: C.pale, knessetDark: C.mist },
-  golden: { ridge: C.mauve, ridge2: C.stone, hills: C.sand, terrace: C.clay, grove: C.brownDeep, meadow: C.olive, meadow2: C.oliveLight, front: C.brownDeep, front2: C.olive, knesset: C.blush, knessetDark: C.mauve },
+  day: { ridge: C.mist, ridge2: C.pale, hills: C.stone, terrace: C.mauve, grove: C.sageDeep, meadow: C.sage, meadow2: C.sageLight, front: C.olive, front2: C.oliveLight, knesset: C.white, knessetDark: C.mist },
+  golden: { ridge: C.lilac, ridge2: C.peach, hills: C.sand, terrace: C.clay, grove: C.sageDeep, meadow: C.sage, meadow2: C.sageLight, front: C.sageDeep, front2: C.olive, knesset: C.blush, knessetDark: C.lilac },
   night: { ridge: C.plum, ridge2: C.dusk, hills: C.dusk, terrace: C.plum, grove: C.ink, meadow: C.sageDeep, meadow2: C.sage, front: C.ink, front2: C.sageDeep, knesset: C.dusk, knessetDark: C.plum },
 };
 
@@ -99,13 +99,14 @@ export type PaintOpts = {
 
 export function paint(px: Pix, o: PaintOpts): Anchors {
   const { w: W, h: H } = px;
-  const [, mood, top, middle, horizon] = skyAt(o.hour);
+  const [, mood, bands] = skyAt(o.hour);
+  const top = bands[0];
   const land = LAND[mood];
   const cx = Math.round(W / 2);
 
   // ---- sky ----
   const skyEnd = Math.round(H * 0.66);
-  px.sky(0, skyEnd, [top, mixStep(top, middle), middle, mixStep(middle, horizon), horizon], Math.max(3, Math.round(skyEnd / 22)));
+  px.sky(0, skyEnd, bands, Math.max(3, Math.round(skyEnd / 22)));
 
   if (mood === "night") {
     for (let k = 0; k < Math.round((W * H) / 260); k++) {
@@ -124,7 +125,7 @@ export function paint(px: Pix, o: PaintOpts): Anchors {
     for (let y = sy - r * 3; y <= sy + r * 3; y++)
       for (let x = sx - r * 3; x <= sx + r * 3; x++) {
         const d = Math.hypot(x - sx, y - sy) / (r * 3);
-        if (d < 1 && d > 0.34 && 1 - d > bayer(x, y) * 1.6) px.set(x, y, mood === "golden" ? C.goldLight : C.pale);
+        if (d < 1 && d > 0.34 && 1 - d > bayer(x, y) * 1.6) px.set(x, y, mood === "golden" ? C.goldLight : C.trayLight);
       }
     px.disc(sx, sy, r, mood === "golden" ? C.goldGlow : C.white);
   } else {
@@ -303,7 +304,7 @@ export function paint(px: Pix, o: PaintOpts): Anchors {
     for (const d of all) {
       if (d.depth < 1 || d.data.ghost) continue;
       const [x, y] = at(d);
-      px.disc(x, y, clusterR * (people > 90 ? 2.6 : 2.1), shades.deep, mood === "night" ? C.ink : C.sageDeep, lx * -1, 0.8);
+      px.disc(x, y, clusterR * (people > 90 ? 2.6 : 2.1), shades.deep, mood === "night" ? C.ink : shades.shadow, lx * -1, 0.8);
     }
   }
   const sorted = [...all].filter((d) => d.depth > 0).sort((a, b) => a.depth - b.depth);

@@ -37,6 +37,7 @@ const I: Record<string, string[]> = {
   envelope: [".........", "xxxxxxxxx", "xx.....xx", "x.x...x.x", "x..x.x..x", "x...x...x", "x.......x", "xxxxxxxxx", "........."],
   hourglass: ["xxxxxxxxx", ".x.....x.", "..x...x..", "...xxx...", "....x....", "...x.x...", "..x.x.x..", ".xxxxxxx.", "xxxxxxxxx"],
   medal: ["xx.....xx", ".xx...xx.", "..xx.xx..", "...xxx...", "..xxxxx..", ".xxx.xxx.", ".xx...xx.", ".xxx.xxx.", "..xxxxx.."],
+  flag: ["xxxxxxxxx", "x.......x", "xxxxxxxxx", "x...x...x", "x..x.x..x", "x...x...x", "xxxxxxxxx", "x.......x", "xxxxxxxxx"],
   logout: ["xxxxx....", "x........", "x.....x..", "x.....xx.", "x.xxxxxxx", "x.....xx.", "x.....x..", "x........", "xxxxx...."],
 };
 

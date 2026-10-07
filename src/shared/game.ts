@@ -35,7 +35,7 @@ export function level(points: number) {
 
 // Tree species: cosmetic, each unlocked at a level. Gold always means "voted", whatever the species.
 export const SPECIES = [
-  { id: "olive", name: "זית", level: 0, leaf: "#9AA77A", edge: "#5E6B45" },
+  { id: "olive", name: "תכלת", level: 0, leaf: "#9AA77A", edge: "#5E6B45" },
   { id: "fig", name: "תאנה", level: 1, leaf: "#6F9A4F", edge: "#3F6B2E" },
   { id: "almond", name: "שקד", level: 2, leaf: "#F7E3E8", edge: "#C98A9B" },
   { id: "oak", name: "אלון", level: 3, leaf: "#5E8A4B", edge: "#33562A" },

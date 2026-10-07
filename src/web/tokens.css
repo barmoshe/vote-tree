@@ -1,45 +1,49 @@
-/* עץ ההצבעה in pixel art. Every colour comes from Resurrect 64 (Kerrie Lake, lospec.com), the
- * same palette the scene is painted in, so the interface and the world read as one game.
- * Pixel borders are drawn with stacked box-shadows (no rounded corners, no blur). */
+/* עץ ההצבעה: an Israeli election day. Flag blue (#0038b8) and white lead; the sky-blue (תכלת) of
+ * the ballot tray is the second colour; navy ink stands in for the black print on a ballot slip;
+ * gold appears only where someone voted. The same colours paint the pixel scene (pixel/canvas.ts).
+ * Pixel frames are stacked box-shadows: no rounded corners, no blur. */
 
 :root {
   color-scheme: light;
 
-  --bg: #c7dcd0; /* pale */
-  --bg-2: #b2ba90;
+  --bg: #eef4fa; /* paper with a touch of the tray's blue */
   --surface: #ffffff;
-  --surface-2: #e8efe9;
-  --border: #9babb2;
-  --ink: #2e222f;
-  --text: #2e222f;
-  --text-soft: #3e3546;
-  --text-faint: #625565;
+  --surface-2: #e4eef7;
+  --paper: #ffffff; /* ballot slips stay white in both themes */
+  --border: #b9c8d8;
+  --ink: #0b1a3d;
+  --text: #0b1a3d;
+  --text-soft: #2a3a5f;
+  --text-faint: #5a6a8a;
 
-  --flag: #4d65b4;
-  --flag-deep: #484a77;
-  --flag-soft: #8fd3ff;
+  --flag: #0038b8;
+  --flag-deep: #14296b;
+  --flag-soft: #8fd0ea; /* the ballot tray */
+  --flag-tint: #c6e8f6;
   --primary: var(--flag);
   --primary-hover: var(--flag-deep);
   --primary-text: #ffffff;
+  --sky: #5b9be8;
 
-  --leaf: #91db69;
-  --leaf-deep: #239063;
-  --gold: #f9c22b;
-  --gold-light: #fbb954;
-  --gold-glow: #fbff86;
-  --gold-deep: #f79617;
-  --bark: #694f62;
-  --anemone: #ea4f36;
-  --danger: #b33831;
-  --wa: #1ebc73;
-  --wa-deep: #239063;
+  --gold: #f6c230;
+  --gold-light: #ffe37a;
+  --gold-glow: #fff6c2;
+  --gold-deep: #d1901b;
+  --leaf: #5fae6e;
+  --leaf-deep: #2f7a5a;
+  --done: #e3f3e6;
+  --anemone: #e2453a;
+  --danger: #c63a32;
+  --wa: #1f9d63;
+  --medal-silver: #c6d3df;
+  --medal-bronze: #d9a172;
 
   --font-sans: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Rubik", system-ui, sans-serif;
-  --font-pixel: "Rubik", system-ui, sans-serif; /* numbers stay vector: crisp at any size */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
-  --step--1: calc(var(--text-base) / 1.18);
+  --step--2: calc(var(--text-base) / 1.36);
+  --step--1: calc(var(--text-base) / 1.16);
   --step-0: var(--text-base);
   --step-1: calc(var(--text-base) * 1.2);
   --step-2: calc(var(--text-base) * 1.5);
@@ -53,9 +57,8 @@
 
   --radius-sm: 0; --radius: 0; --radius-lg: 0; --radius-full: 0;
   --px: 3px; /* one art pixel of chrome */
-  /* a pixel frame: four sides, the corners left out, then a hard drop */
   --frame: 0 calc(-1 * var(--px)) 0 0 var(--ink), 0 var(--px) 0 0 var(--ink), calc(-1 * var(--px)) 0 0 0 var(--ink), var(--px) 0 0 0 var(--ink);
-  --frame-drop: var(--frame), 0 calc(3 * var(--px)) 0 0 rgb(46 34 47 / 0.28);
+  --frame-drop: var(--frame), 0 calc(3 * var(--px)) 0 0 color-mix(in srgb, var(--ink) 22%, transparent);
   --line: var(--px);
   --shadow-1: var(--frame);
   --shadow-2: var(--frame-drop);
@@ -70,16 +73,17 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #323353;
-    --bg-2: #3e3546;
-    --surface: #484a77;
-    --surface-2: #3e3546;
-    --border: #625565;
-    --ink: #2e222f;
+    --bg: #0b1a3d;
+    --surface: #14296b;
+    --surface-2: #1b2a55;
+    --border: #3a4a7a;
+    --ink: #050d22;
     --text: #ffffff;
-    --text-soft: #c7dcd0;
-    --text-faint: #9babb2;
-    --flag: #4d9be6;
-    --flag-deep: #4d65b4;
+    --text-soft: #c6e8f6;
+    --text-faint: #9fb2c8;
+    --flag: #5b9be8;
+    --flag-deep: #2e5fd6;
+    --flag-tint: #1b2a55;
+    --done: #173f37;
   }
 }

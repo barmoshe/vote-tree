@@ -11,12 +11,12 @@ function inlineStyles(src: Element, dst: Element) {
   for (let k = 0; k < src.children.length; k++) inlineStyles(src.children[k], dst.children[k]);
 }
 
-function svgImage(svg: SVGSVGElement): Promise<HTMLImageElement> {
+function svgImage(svg: SVGSVGElement, w: number, h: number): Promise<HTMLImageElement> {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   inlineStyles(svg, clone);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  clone.setAttribute("width", "800");
-  clone.setAttribute("height", "600");
+  clone.setAttribute("width", String(w));
+  clone.setAttribute("height", String(h));
   // CSS variables used inside attributes (fill="var(--gold)") must become real colours too.
   const root = getComputedStyle(document.documentElement);
   let xml = new XMLSerializer().serializeToString(clone);
@@ -30,7 +30,8 @@ function svgImage(svg: SVGSVGElement): Promise<HTMLImageElement> {
   });
 }
 
-export async function storyCard(svg: SVGSVGElement, lines: { title: string; big: string; sub: string; link: string }) {
+/** The scene (pixel canvas + vector layer) on a 1080x1920 card, for a WhatsApp status or a story. */
+export async function storyCard(scene: HTMLCanvasElement, lines: { title: string; big: string; sub: string; link: string }) {
   await document.fonts.ready;
   const W = 1080;
   const H = 1920;
@@ -41,30 +42,25 @@ export async function storyCard(svg: SVGSVGElement, lines: { title: string; big:
   const css = getComputedStyle(document.documentElement);
   const v = (n: string) => css.getPropertyValue(n).trim();
 
-  g.fillStyle = "#f3ede0";
+  g.fillStyle = v("--bg") || "#eef4fa";
   g.fillRect(0, 0, W, H);
   // the flag's double stripes, top and bottom
   g.fillStyle = v("--flag") || "#0038b8";
   for (const y of [70, 120, H - 140, H - 90]) g.fillRect(0, y, W, 22);
 
-  const img = await svgImage(svg);
   const sw = W - 120;
-  const sh = (sw * 600) / 800;
-  g.save();
-  g.beginPath();
-  g.roundRect(60, 560, sw, sh, 40);
-  g.clip();
-  g.drawImage(img, 60, 560, sw, sh);
-  g.restore();
-  g.lineWidth = 8;
-  g.strokeStyle = "#1c2440";
-  g.beginPath();
-  g.roundRect(60, 560, sw, sh, 40);
-  g.stroke();
+  const sh = Math.round((sw * scene.height) / scene.width);
+  g.imageSmoothingEnabled = false; // keep the pixels square
+  g.drawImage(scene, 60, 560, sw, sh);
+  const vector = scene.parentElement?.querySelector<SVGSVGElement>("svg.scene-vector");
+  if (vector) g.drawImage(await svgImage(vector, scene.width, scene.height), 60, 560, sw, sh);
+  g.lineWidth = 9;
+  g.strokeStyle = v("--ink") || "#0b1a3d";
+  g.strokeRect(60, 560, sw, sh);
 
   g.direction = "rtl";
   g.textAlign = "center";
-  g.fillStyle = "#1c2440";
+  g.fillStyle = v("--ink") || "#0b1a3d";
   g.font = '700 120px "Fredoka", "Rubik", sans-serif';
   g.fillText(lines.title, W / 2, 330);
   g.font = '500 54px "Rubik", sans-serif';

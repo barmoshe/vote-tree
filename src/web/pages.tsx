@@ -165,10 +165,10 @@ export function Home({ code }: { code?: string }) {
 
       <section className="container join-wrap">
         <div className="join-col">
-          <p className="lead">שותלים עץ שצומח מתוך קלפי, מזמינים חברים, וב־{ELECTION_DATE_LABEL} כל מי שהצביע הופך לפתק זהב בכל העצים שמעליו.</p>
+          <p className="lead">שותלים עץ שצומח מתוך קלפי, מזמינים חברים, וביום הבחירות כל מי שהצביע הופך לפתק זהב בכל העצים שמעליו.</p>
           {inviter && (
             <p className="gift">
-              <span aria-hidden="true"><Icon name="gift" /></span> קיבלת שתיל מ־<strong>{inviter}</strong>. ההצטרפות מחברת אותך לעץ של {inviter}.
+              <span aria-hidden="true"><Icon name="gift" /></span> קיבלת שתיל מ־<strong>{inviter}</strong>. ההצטרפות מחברת אותך לעץ של {inviter}
             </p>
           )}
           {!data ? (
@@ -191,7 +191,7 @@ export function Home({ code }: { code?: string }) {
                 {busy ? "שותלים…" : <><Icon name="sprout" /> לשתול את העץ שלי</>}
               </button>
               <p id="name-hint" className="hint">
-                בלי טלפון, בלי מייל, בלי סיסמה. ואף פעם לא שואלים למי.
+                בלי טלפון, בלי מייל, בלי סיסמה
               </p>
               <ErrorLine text={error} />
             </form>
@@ -203,7 +203,7 @@ export function Home({ code }: { code?: string }) {
           <li>
             <span className="stage-n">שלב 1 · עכשיו</span>
             <h3>שותלים ומשקים</h3>
-            <p>שם או כינוי, ויש לך עץ. טיפה ביום שומרת אותו ירוק.</p>
+            <p>טיפה ביום שומרת אותו ירוק</p>
           </li>
           <li>
             <span className="stage-n">שלב 2 · עד הבחירות</span>
@@ -211,7 +211,7 @@ export function Home({ code }: { code?: string }) {
             <p>כל חבר שמצטרף הוא ענף. ליגה פרטית עם החבר׳ה, ויש גם ליגה ארצית.</p>
           </li>
           <li className="gold">
-            <span className="stage-n">שלב 3 · {ELECTION_DATE_LABEL}</span>
+            <span className="stage-n">שלב 3 · יום הבחירות</span>
             <h3>מזהיבים</h3>
             <p>מצביעים, לוחצים &quot;הצבעתי&quot;, וחבר שהיה שם מחתים חותמת עד.</p>
           </li>
@@ -222,7 +222,7 @@ export function Home({ code }: { code?: string }) {
         <div className="panel">
           <h2><Icon name="drop" /> טיפות</h2>
           <DropsTable />
-          <p className="hint">הטיפות סמליות: אין פרסים, אין הגרלות ואין שום תמורה.</p>
+          <p className="hint">הטיפות סמליות: אין פרסים, אין הגרלות ואין שום תמורה</p>
         </div>
         <div className="panel">
           <h2><Icon name="tree" /> עצים לאסוף</h2>
@@ -235,7 +235,7 @@ export function Home({ code }: { code?: string }) {
               </li>
             ))}
           </ul>
-          <p className="hint">כל דרגה פותחת עץ חדש ומוסיפה לנוף: כלניות, פרפרים, דוכיפת וחורשה.</p>
+          <p className="hint">כל דרגה פותחת עץ חדש ומוסיפה לנוף כלניות, פרפרים, דוכיפת וחורשה</p>
           <Link className="btn btn-ghost" href="/demo">
             <Icon name="play" /> יום בחירות שלם בעשרים שניות
           </Link>
@@ -275,31 +275,48 @@ function Hud({ me, data, onWater }: { me: Me; data: MeResponse; onWater: () => v
       <div className="hud-main">
         <p className="hud-name">{me.name}</p>
         <p className="hud-level">
-          דרגה: <b>{lv.name}</b>
+          <b>{lv.name}</b>
         </p>
         {lv.next ? (
           <div className="xp" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(lv.progress * 100)} aria-label={`עוד ${lv.next.at - me.points} טיפות ל${lv.next.name}`}>
             <span style={{ width: `${Math.max(4, Math.round(lv.progress * 100))}%` }} />
             <em>
-              <Icon name="drop" /> {me.points} / {lv.next.at} · {lv.next.name}
+              <Icon name="drop" size={11} /> <bdi dir="ltr">{me.points} / {lv.next.at}</bdi> · {lv.next.name}
             </em>
           </div>
         ) : (
-          <p className="hud-level"><Icon name="drop" /> {me.points} · הדרגה הגבוהה ביותר</p>
+          <p className="hud-level">
+            <Icon name="drop" size={12} /> {me.points} · הדרגה הגבוהה ביותר
+          </p>
         )}
       </div>
+      {data.phase === "before" && (
+        <p className="hud-countdown">
+          <Icon name="ballot" size={14} /> עוד <b>{data.daysUntil}</b> ימים לבחירות · {ELECTION_DATE_LABEL}
+        </p>
+      )}
       {canWater && (
         <button className={`water ${me.wateredToday ? "done" : ""}`} onClick={water} disabled={busy || me.wateredToday} aria-label={me.wateredToday ? `הושקה היום. רצף: ${me.stats.streak} ימים` : "השקיה יומית, טיפה אחת"}>
-          <span className="water-can" aria-hidden="true">
-            <Icon name={me.wateredToday ? "check" : "drop"} size={20} />
-          </span>
-          <span className="water-text">{me.wateredToday ? "הושקה היום" : "להשקות"}</span>
+          <Icon name={me.wateredToday ? "check" : "drop"} size={20} />
+          <span>{me.wateredToday ? "הושקה היום" : "להשקות"}</span>
           <span className="streak" aria-hidden="true">
-            <Icon name="flame" /> {me.stats.streak}
+            <Icon name="flame" size={14} /> {me.stats.streak}
           </span>
         </button>
       )}
     </div>
+  );
+}
+
+function waHref(text: string) {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+function WaLink({ text, label, small = false, ghost = false }: { text: string; label: string; small?: boolean; ghost?: boolean }) {
+  return (
+    <a className={`btn ${ghost ? "btn-ghost" : "btn-wa"} ${small ? "btn-small" : ""}`} href={waHref(text)} target="_blank" rel="noopener noreferrer">
+      <Icon name="chat" /> {label}
+    </a>
   );
 }
 
@@ -320,13 +337,12 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
   }
   if (me.stats.voted) {
     const link = me.confirmCode ? `${location.origin}/c/${me.confirmCode}` : "";
-    const text = `הצבעתי. היית איתי? החותמת שלך על הפתק שלי: ${link}`;
     return (
       <Slip className="slip-done">
         <p className="slip-big">
           <Icon name="check" /> הפתק בקלפי
         </p>
-        <p className="hint">סימון לבד שווה טיפה אחת. כל הוכחה מוסיפה {POINTS.confirmed}.</p>
+        <p className="hint">סימון לבד שווה טיפה אחת</p>
         <div className="proofs">
           <div className={`proof ${me.confirmedBy ? "done" : ""}`}>
             <p className="proof-h">
@@ -334,21 +350,16 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
             </p>
             {me.confirmedBy ? (
               <p>
-                חתם/ה: <b>{me.confirmedBy}</b>
+                החותמת של <b>{me.confirmedBy}</b>
               </p>
             ) : (
               me.confirmCode && (
-                <>
-                  <p className="hint">חבר שהיה איתך בקלפי מאשר.</p>
-                  <div className="row">
-                    <a className="btn btn-wa btn-small" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-                      לבקש חותמת
-                    </a>
-                    <button className="btn btn-ghost btn-small" onClick={() => copy(link)}>
-                      {copied ? "הועתק" : "העתקה"}
-                    </button>
-                  </div>
-                </>
+                <div className="row">
+                  <WaLink text={`הצבעתי. היית איתי? החותמת שלך על הפתק שלי: ${link}`} label="לבקש חותמת" small />
+                  <button className="btn-link" onClick={() => copy(link)}>
+                    {copied ? "הועתק" : "העתקת הקישור"}
+                  </button>
+                </div>
               )
             )}
           </div>
@@ -357,28 +368,12 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
       </Slip>
     );
   }
-  if (data.phase === "before")
-    return (
-      <Slip>
-        <p className="slip-count">
-          <b>{data.daysUntil}</b> ימים לבחירות
-        </p>
-        <p>
-          יום שלישי {ELECTION_DATE_LABEL}, יום שבתון. ברוב הקלפיות 07:00 עד 22:00.
-          {plan && (
-            <>
-              <br />
-              התוכנית שלך: {plan.when}, {plan.how}, {plan.with}.
-            </>
-          )}
-        </p>
-      </Slip>
-    );
+  if (data.phase === "before") return null; // the countdown lives in the HUD
   if (data.phase === "after")
     return (
       <Slip>
         <p className="slip-big">הקלפיות נסגרו</p>
-        <p>תודה שהיית חלק מהיער.</p>
+        <p>תודה שהיית חלק מהיער</p>
       </Slip>
     );
   return (
@@ -386,7 +381,7 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
       <p className="slip-big">היום בוחרים</p>
       {plan && (
         <p>
-          התוכנית שלך: {plan.when}, {plan.how}, {plan.with}.
+          התוכנית שלך: {plan.when}, {plan.how}, {plan.with}
         </p>
       )}
       {!asking ? (
@@ -400,7 +395,7 @@ function VoteCard({ data, onVoted }: { data: MeResponse; onVoted: () => void }) 
             <button className="btn btn-gold" onClick={vote}>
               כן, הצבעתי
             </button>
-            <button className="btn btn-ghost" onClick={() => setAsking(false)}>
+            <button className="btn-link" onClick={() => setAsking(false)}>
               עוד לא
             </button>
           </div>
@@ -437,14 +432,14 @@ function PhotoProof({ me, open, onChange }: { me: Me; open: boolean; onChange: (
         <Icon name="camera" /> תמונה מהקלפי <span className="q-reward">+{POINTS.photo}</span>
       </p>
       {ph?.hidden ? (
-        <p className="hint">חברי הליגה סימנו שזו לא תמונה מקלפי, והטיפות ירדו.</p>
+        <p className="hint">חברי הליגה סימנו שזו לא תמונה מקלפי, והטיפות ירדו</p>
       ) : ph ? (
         <>
           <img className="proof-img" src={api.photoUrl(ph.token)} alt="התמונה שלך מהקלפי" />
-          <p className="hint">רק חברי הליגות שלך רואים אותה, והיא נמחקת כשהקלפיות נסגרות.</p>
+          <p className="hint">רק חברי הליגות שלך רואים אותה, והיא נמחקת כשהקלפיות נסגרות</p>
           {open && (
-            <button className="btn btn-ghost btn-small" onClick={() => api.deletePhoto().then(onChange)}>
-              מחיקה
+            <button className="btn-link" onClick={() => api.deletePhoto().then(onChange)}>
+              מחיקת התמונה
             </button>
           )}
         </>
@@ -452,8 +447,8 @@ function PhotoProof({ me, open, onChange }: { me: Me; open: boolean; onChange: (
         <>
           <p className="hint">מבחוץ: השלט של הקלפי, הכניסה, את או אתה ליד. בלי הפתק, בלי הפרגוד ובלי אנשים אחרים.</p>
           <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
-          <button className="btn btn-small" disabled={busy} onClick={() => input.current?.click()}>
-            {busy ? "מעלים…" : "צילום"}
+          <button className="btn btn-ghost btn-small" disabled={busy} onClick={() => input.current?.click()}>
+            <Icon name="camera" /> {busy ? "מעלים…" : "צילום"}
           </button>
         </>
       ) : null}
@@ -462,21 +457,22 @@ function PhotoProof({ me, open, onChange }: { me: Me; open: boolean; onChange: (
   );
 }
 
-function SeedsCard({ me }: { me: Me }) {
+function SeedsCard({ me, primary }: { me: Me; primary: boolean }) {
   const url = `${location.origin}/j/${me.code}`;
   const [copied, copy] = useCopy();
   const [card, setCard] = useState("");
   const text = `שתלתי עץ לקראת הבחירות. מצטרפים דרך הקישור שלי, וב־${ELECTION_DATE_LABEL} כל מי שמצביע הופך לפתק זהב: ${url}`;
   async function story() {
-    const svg = document.querySelector<SVGSVGElement>(".world svg");
-    if (!svg) return;
+    const svg = document.querySelector<HTMLDivElement>(".world .scene");
+    const canvas = svg?.querySelector("canvas");
+    if (!canvas) return;
     setCard("…");
     const s = me.stats;
     const gold = s.totalVoted + (s.voted ? 1 : 0);
-    const blob = await storyCard(svg, {
+    const blob = await storyCard(canvas, {
       title: "עץ ההצבעה",
       sub: `העץ של ${me.name} · ${level(me.points).name}`,
-      big: gold > 0 ? `${gold} פתקי זהב` : `${s.totalJoined + 1} עלים בעץ`,
+      big: gold > 0 ? `${gold} פתקי זהב` : `${s.totalJoined + 1} בעץ`,
       link: url.replace(/^https?:\/\//, ""),
     });
     const how = await shareOrDownload(blob, "vote-tree.png", text);
@@ -484,20 +480,18 @@ function SeedsCard({ me }: { me: Me }) {
   }
   return (
     <section className="panel seeds" aria-labelledby="seeds-h">
-      <h2 id="seeds-h"><Icon name="sprout" /> השתילים שלך</h2>
-      <p className="hint">כל מי שמצטרף דרך הקישור הזה הופך לענף בעץ שלך.</p>
-      <p className="link-box" dir="ltr">
+      <h2 id="seeds-h">
+        <Icon name="sprout" /> להזמין חברים
+      </h2>
+      <p className="hint">כל מי שמצטרף דרך הקישור שלך הופך לענף בעץ שלך</p>
+      <button className="link-copy" dir="ltr" onClick={() => copy(url)}>
         {url.replace(/^https?:\/\//, "")}
-      </p>
+        <span>{copied ? "הועתק" : "העתקת הקישור"}</span>
+      </button>
       <div className="row">
-        <a className="btn btn-wa" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-          שליחה בוואטסאפ
-        </a>
-        <button className="btn btn-ghost" onClick={() => copy(url)}>
-          {copied ? "הועתק" : "העתקה"}
-        </button>
-        <button className="btn btn-ghost" onClick={story} disabled={card === "…"}>
-          {card || <><Icon name="camera" /> תמונה לסטורי</>}
+        <WaLink text={text} label="שליחה בוואטסאפ" ghost={!primary} />
+        <button className="btn-link" onClick={story} disabled={card === "…"}>
+          <Icon name="camera" /> {card || "תמונה לסטורי"}
         </button>
       </div>
       <p className="sr-only" aria-live="polite">
@@ -539,8 +533,10 @@ function PlanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={onClose} label="תוכנית הצבעה">
       <form className="plan" onSubmit={save}>
-        <h2><Icon name="map" /> תוכנית הצבעה</h2>
-        <p className="hint">מי שמתכנן מתי ואיך יצביע, מגיע יותר. התוכנית נשמרת רק בטלפון הזה.</p>
+        <h2>
+          <Icon name="map" /> תוכנית הצבעה
+        </h2>
+        <p className="hint">נשמרת רק בטלפון הזה</p>
         {pick("when", ["בבוקר", "בצהריים", "אחרי העבודה"], "מתי?")}
         {pick("how", ["ברגל", "ברכב", "בתחבורה ציבורית"], "איך מגיעים?")}
         {pick("with", ["לבד", "עם המשפחה", "עם חברים"], "עם מי?")}
@@ -565,7 +561,7 @@ function PlanDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => 
           <button type="button" className="btn btn-ghost" onClick={() => download(voteIcs(plan, POLL_LOOKUP), "election-day.ics")}>
             <Icon name="calendar" /> ליומן
           </button>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <button type="button" className="btn-link" onClick={onClose}>
             ביטול
           </button>
         </div>
@@ -586,8 +582,8 @@ function Quests({ me, phase, onPlan }: { me: Me; phase: MeResponse["phase"]; onP
       reward: POINTS.plan,
       done: s.planned,
       action: (
-        <button className="btn btn-small" onClick={onPlan}>
-          {s.planned ? "עריכה" : "לתכנן"}
+        <button className="btn btn-ghost btn-small" onClick={onPlan}>
+          לתכנן
         </button>
       ),
     },
@@ -598,40 +594,49 @@ function Quests({ me, phase, onPlan }: { me: Me; phase: MeResponse["phase"]; onP
       sub: "ליגה פרטית משלך או של חברים",
       reward: null,
       done: s.leagues >= 1,
-      action: !s.leagues && (
-        <Link className="btn btn-small" href="/leagues">
+      action: (
+        <Link className="btn btn-ghost btn-small" href="/leagues">
           לליגות
         </Link>
       ),
     },
     { icon: "generations", title: "דור שלישי", sub: "חבר של חבר של חבר", reward: null, done: s.depth >= 3, progress: [Math.min(3, s.depth), 3] },
-    { icon: "ballot", title: "הצבעתי", sub: phase === "before" ? `נפתח ב־${ELECTION_DATE_LABEL}` : "יום הבחירות", reward: POINTS.selfVoted, done: s.voted },
-    { icon: "stamp", title: "חותמת עד", sub: "חבר שהיה איתך מאשר", reward: POINTS.confirmed, done: s.confirmed },
-    { icon: "camera", title: "תמונה מהקלפי", sub: "מבחוץ, בלי הפתק ובלי הפרגוד", reward: POINTS.photo, done: s.photo },
   ];
+  // Election-day quests only on the day, and only until they're done in the vote card.
+  if (phase === "open" && !s.voted) quests.push({ icon: "ballot", title: "הצבעתי", sub: "היום", reward: POINTS.selfVoted, done: false });
+  const open = quests.filter((q) => !q.done);
+  const done = quests.filter((q) => q.done);
+  const row = (q: Q) => (
+    <li key={q.title} className={q.done ? "done" : ""}>
+      <span className="q-icon" aria-hidden="true">
+        <Icon name={q.done ? "check" : q.icon} />
+      </span>
+      <span className="q-text">
+        <b>{q.title}</b>
+        <span>{q.sub}</span>
+        {q.progress && !q.done && (
+          <span className="q-bar" role="img" aria-label={`${q.progress[0]} מתוך ${q.progress[1]}`}>
+            <span style={{ width: `${(q.progress[0] / q.progress[1]) * 100}%` }} />
+          </span>
+        )}
+      </span>
+      {q.reward != null && <span className="q-reward">+{q.reward}</span>}
+      {!q.done && q.action}
+    </li>
+  );
   return (
     <section className="panel quests" aria-labelledby="q-h">
-      <h2 id="q-h"><Icon name="sparkle" /> משימות</h2>
-      <ul>
-        {quests.map((q) => (
-          <li key={q.title} className={q.done ? "done" : ""}>
-            <span className="q-icon" aria-hidden="true">
-              <Icon name={q.done ? "check" : q.icon} />
-            </span>
-            <span className="q-text">
-              <b>{q.title}</b>
-              <span>{q.sub}</span>
-              {q.progress && !q.done && (
-                <span className="q-bar" role="img" aria-label={`${q.progress[0]} מתוך ${q.progress[1]}`}>
-                  <span style={{ width: `${(q.progress[0] / q.progress[1]) * 100}%` }} />
-                </span>
-              )}
-            </span>
-            {q.reward != null && <span className="q-reward">+{q.reward} <Icon name="drop" /></span>}
-            {!q.done && q.action}
-          </li>
-        ))}
-      </ul>
+      <h2 id="q-h">
+        <Icon name="sparkle" /> משימות
+      </h2>
+      <ul>{open.map(row)}</ul>
+      {phase === "before" && <p className="quest-group">ביום הבחירות: הצבעתי (+{POINTS.selfVoted}), חותמת עד (+{POINTS.confirmed}), תמונה מהקלפי (+{POINTS.photo})</p>}
+      {done.length > 0 && (
+        <details>
+          <summary>הושלמו ({done.length})</summary>
+          <ul>{done.map(row)}</ul>
+        </details>
+      )}
     </section>
   );
 }
@@ -641,15 +646,14 @@ function Nudges({ me }: { me: Me }) {
   if (waiting.length === 0) return null;
   return (
     <section className="panel nudges" aria-labelledby="n-h">
-      <h2 id="n-h"><Icon name="megaphone" /> עוד לא הזהיבו</h2>
-      <p className="hint">תזכורת קטנה מחבר עובדת יותר מכל מודעה.</p>
+      <h2 id="n-h">
+        <Icon name="megaphone" /> עוד לא הצביעו
+      </h2>
       <ul>
         {waiting.slice(0, 12).map((n) => (
           <li key={n.i}>
             <span>{n.n}</span>
-            <a className="btn btn-small btn-wa" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`היי ${n.n}, כבר הצבעת? הפתק שלך בעץ ההצבעה עוד מחכה להזהיב ${location.origin}/tree`)}`}>
-              תזכורת
-            </a>
+            <WaLink text={`היי ${n.n}, כבר הצבעת? הפתק שלך בעץ ההצבעה עוד מחכה להזהיב ${location.origin}/tree`} label="תזכורת" small ghost />
           </li>
         ))}
       </ul>
@@ -660,9 +664,12 @@ function Nudges({ me }: { me: Me }) {
 function SpeciesPicker({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const lv = level(me.points).index;
   const [error, setError] = useState("");
+  const unlocked = SPECIES.filter((s) => lv >= s.level).length;
   return (
-    <section className="panel" aria-labelledby="sp-h">
-      <h2 id="sp-h"><Icon name="tree" /> העצים שלי</h2>
+    <details>
+      <summary>
+        העצים שלי · {unlocked} מתוך {SPECIES.length} פתוחים
+      </summary>
       <ul className="species-grid">
         {SPECIES.map((s) => {
           const open = lv >= s.level;
@@ -680,41 +687,54 @@ function SpeciesPicker({ me, onChanged }: { me: Me; onChanged: () => void }) {
                     .catch((e) => setError(errorText(e)))
                 }
               >
-                <LeafChip species={s.id} size={48} />
+                <LeafChip species={s.id} size={44} />
                 <b>{s.name}</b>
-                <span>{open ? (on ? "נבחר" : "לבחירה") : <><Icon name="lock" size={11} /> {LEVELS[s.level].name}</>}</span>
+                {!open && (
+                  <span>
+                    <Icon name="lock" size={11} /> {LEVELS[s.level].name}
+                  </span>
+                )}
               </button>
             </li>
           );
         })}
       </ul>
       <ErrorLine text={error} />
-    </section>
+    </details>
   );
 }
 
 function Badges({ me }: { me: Me }) {
-  const done = ACHIEVEMENTS.filter((a) => a.done(me.stats)).length;
+  const earned = ACHIEVEMENTS.filter((a) => a.done(me.stats));
+  const locked = ACHIEVEMENTS.filter((a) => !a.done(me.stats));
   return (
     <section aria-labelledby="b-h" className="badges">
       <h2 id="b-h">
-        <Icon name="medal" /> תגים <span className="hint">({done} מתוך {ACHIEVEMENTS.length})</span>
+        <Icon name="medal" /> תגים · {earned.length}
       </h2>
       <ul>
-        {ACHIEVEMENTS.map((a) => {
-          const ok = a.done(me.stats);
-          return (
-            <li key={a.id} className={ok ? "badge on" : "badge"}>
-              <span className="medal" aria-hidden="true">
-                {ok ? <Icon name={a.icon} size={26} /> : "?"}
-              </span>
-              <b>{a.title}</b>
-              <span>{a.hint}</span>
-              <span className="sr-only">{ok ? "הושג" : "עוד לא"}</span>
-            </li>
-          );
-        })}
+        {earned.map((a) => (
+          <li key={a.id} className="badge">
+            <span className="medal" aria-hidden="true">
+              <Icon name={a.icon} size={26} />
+            </span>
+            <b>{a.title}</b>
+            <span>{a.hint}</span>
+          </li>
+        ))}
       </ul>
+      {locked.length > 0 && (
+        <details>
+          <summary>עוד {locked.length} תגים</summary>
+          <ul>
+            {locked.map((a) => (
+              <li key={a.id}>
+                <b>{a.title}</b>: {a.hint}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }
@@ -723,14 +743,16 @@ function AccountCard({ k, onGone }: { k: string; onGone: () => void }) {
   const [copied, copy] = useCopy();
   const [leaving, setLeaving] = useState(false);
   return (
-    <section className="panel account" aria-labelledby="acc-h">
-      <h2 id="acc-h"><Icon name="key" /> הקישור הפרטי לחזרה</h2>
-      <p>אין סיסמה, אז זו הדרך היחידה להיכנס לעץ שלך מטלפון אחר. כדאי לשמור אותו אצלך (למשל בהודעה לעצמך), ולא לשלוח אותו לאף אחד.</p>
+    <details className="account">
+      <summary>
+        <Icon name="key" /> הקישור הפרטי וחשבון
+      </summary>
+      <p>זו הדרך היחידה להיכנס לעץ שלך ממכשיר אחר. כדאי לשמור אותו אצלך ולא לשלוח לאף אחד.</p>
       <div className="row">
         <button className="btn btn-ghost" onClick={() => copy(`${location.origin}/restore#${k}`)}>
           {copied ? "הועתק" : "העתקת הקישור הפרטי"}
         </button>
-        <button className="btn btn-ghost" onClick={() => api.logout().then(onGone)}>
+        <button className="btn-link" onClick={() => api.logout().then(onGone)}>
           יציאה מהמכשיר הזה
         </button>
       </div>
@@ -747,7 +769,7 @@ function AccountCard({ k, onGone }: { k: string; onGone: () => void }) {
           </button>
         )}
       </details>
-    </section>
+    </details>
   );
 }
 
@@ -796,60 +818,51 @@ export function MyTree() {
   const lv = level(me.points);
   const gold = s.totalVoted + (s.voted ? 1 : 0);
   const unlocked = moment ? SPECIES.find((sp) => sp.level === moment.index) : undefined;
+  const voting = data.phase === "open";
 
   return (
-    <div className="game">
-      <div className="container">
-        <Hud me={me} data={data} onWater={reload} />
-      </div>
+    <div className="container game">
+      <Hud me={me} data={data} onWater={reload} />
 
-      <div className="container game-grid">
-        <div className="game-main">
-          <figure className="world">
-            <Scene
-              nodes={me.tree}
-              species={me.species}
-              levelIndex={lv.index}
-              ghosts={Math.max(0, 3 - s.directJoined)}
-              ballots={gold}
-              stamps={{ voted: s.voted, witnessed: s.confirmed }}
-              label={`העץ של ${me.name}: ${s.totalJoined} אנשים, ${gold} פתקי זהב`}
-            />
-            <figcaption>
-              {s.totalJoined === 0 ? <>הפתקים המקווקווים מחכים לחברים שלך.</> : <>{me.inviter ? `הגעת דרך ${me.inviter} · ` : ""}{me.treeTruncated ? "מוצגים 400 הראשונים" : `${s.depth} דורות`}</>}
-            </figcaption>
-          </figure>
-          <dl className="counters">
-            <div>
-              <dt>הצטרפו דרכך</dt>
-              <dd>{s.directJoined}</dd>
-            </div>
-            <div>
-              <dt>בכל העץ</dt>
-              <dd>{s.totalJoined}</dd>
-            </div>
-            <div className="gold">
-              <dt>פתקי זהב</dt>
-              <dd>{gold}</dd>
-            </div>
-            <div>
-              <dt>טיפות</dt>
-              <dd>{me.points}</dd>
-            </div>
-          </dl>
+      <div className="game-grid">
+        {/* the actions come first on a phone: invite before the day, vote on the day */}
+        <div className="game-side">
+          {voting && <VoteCard data={data} onVoted={reload} />}
+          {voting && <Nudges me={me} />}
+          {!voting && s.voted && <VoteCard data={data} onVoted={reload} />}
+          <SeedsCard me={me} primary={!voting || s.voted} />
         </div>
 
-        <div className="game-side">
-          <VoteCard data={data} onVoted={reload} />
-          {data.phase === "open" && <Nudges me={me} />}
-          <SeedsCard me={me} />
+        <figure className="world">
+          <Scene
+            nodes={me.tree}
+            species={me.species}
+            levelIndex={lv.index}
+            ghosts={Math.max(0, 3 - s.directJoined)}
+            ballots={gold}
+            stamps={{ voted: s.voted, witnessed: s.confirmed }}
+            label={`העץ של ${me.name}: ${s.totalJoined} אנשים, ${gold} פתקי זהב`}
+          />
+          <figcaption>
+            {s.totalJoined === 0 ? (
+              <>הפתקים המקווקווים מחכים לחברים שלך</>
+            ) : (
+              <>
+                <b>{s.directJoined}</b> הצטרפו דרכך · <b>{s.totalJoined}</b> בכל העץ · <b className="gold-n">{gold}</b> פתקי זהב
+                {me.treeTruncated ? " · מוצגים 400 הראשונים" : ""}
+              </>
+            )}
+          </figcaption>
+        </figure>
+
+        <div className="game-quests">
           <Quests me={me} phase={data.phase} onPlan={() => setPlanOpen(true)} />
         </div>
       </div>
 
-      <div className="container game-lower">
-        <SpeciesPicker me={me} onChanged={reload} />
+      <div className="game-lower">
         <Badges me={me} />
+        <SpeciesPicker me={me} onChanged={reload} />
         <AccountCard k={me.key} onGone={() => navigate("/", true)} />
       </div>
 
@@ -863,12 +876,13 @@ export function MyTree() {
             {moment.kind === "welcome" ? (
               <>
                 <h2>שתלת עץ בקלפי!</h2>
-                <p>שלושה פתקים מקווקווים מחכים לחברים הראשונים שלך. ואל תשכחו להשקות מחר.</p>
+                <p>שלושה פתקים מקווקווים מחכים לחברים הראשונים שלך. מחר משקים שוב.</p>
+                <p className="hint">הקישור הפרטי לחזרה מכל מכשיר נמצא בתחתית העמוד</p>
               </>
             ) : (
               <>
                 <h2>עלית דרגה: {LEVELS[moment.index].name}</h2>
-                {unlocked && <p>נפתח עץ חדש: {unlocked.name}. אפשר לבחור אותו ב&quot;העצים שלי&quot;.</p>}
+                {unlocked && <p>נפתח עץ חדש: {unlocked.name}, ב&quot;העצים שלי&quot;</p>}
               </>
             )}
             <button className="btn btn-big" onClick={closeMoment}>
@@ -973,8 +987,8 @@ export function Leagues() {
 
   return (
     <div className="container page">
-      <p className="chip"><Icon name="trophy" /> ליגות</p>
       <h1>מי מגדל את העץ הכי זהוב?</h1>
+      <p className="hint">טבלה ארצית לכולם, וליגות פרטיות רק למי שקיבל את הקישור</p>
       <PulseBar p={pulse} />
 
       <div className="duo leagues-top">
@@ -989,7 +1003,7 @@ export function Leagues() {
           ) : (
             <>
               {data.me.leagues.length === 0 ? (
-                <p className="hint">עוד אין. ליגה עם המשפחה, עם הקבוצה בעבודה, עם החבר׳ה מהצבא.</p>
+                <p className="hint">עוד אין. ליגה עם המשפחה, עם הקבוצה בעבודה, עם החבר׳ה מהצבא</p>
               ) : (
                 <ul className="my-leagues">
                   {data.me.leagues.map((l) => (
@@ -1006,7 +1020,7 @@ export function Leagues() {
                   שם הליגה
                 </label>
                 <input id="lname" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם לליגה חדשה" minLength={2} maxLength={30} required />
-                <button className="btn">+ ליגה חדשה</button>
+                <button className="btn">יצירה</button>
               </form>
               <form className="inline-form" onSubmit={goJoin}>
                 <label htmlFor="ljoin" className="sr-only">
@@ -1016,20 +1030,14 @@ export function Leagues() {
                 <button className="btn btn-ghost">הצטרפות</button>
               </form>
               <ErrorLine text={error} />
-              <button className="sr-only" onClick={reload}>
-                רענון
-              </button>
             </>
           )}
         </section>
-        <section className="panel" aria-labelledby="how-h">
-          <h2 id="how-h">איך זה עובד</h2>
-          <p>כמו ליגה של המונדיאל, רק שהתוצאה היא כמה אנשים יצאו להצביע. כל אחד צובר טיפות בעץ שלו, והליגה מדרגת את כולם.</p>
-          <p className="hint">טבלה ארצית לכולם, וליגות פרטיות רק למי שקיבל את הקישור.</p>
-        </section>
       </div>
 
-      <h2 className="section-h">🇮🇱 הליגה הארצית</h2>
+      <h2 className="section-h">
+        <Icon name="flag" /> הליגה הארצית
+      </h2>
       {!rows ? (
         <Loading />
       ) : rows.length === 0 ? (
@@ -1098,22 +1106,9 @@ export function LeagueView({ code }: { code: string }) {
           </>
         ) : league.isMember ? (
           <>
-            <a className="btn btn-wa" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
-              הזמנה בוואטסאפ
-            </a>
+            <WaLink text={text} label="הזמנה בוואטסאפ" />
             <button className="btn btn-ghost" onClick={() => copy(url)}>
               {copied ? "הועתק" : "העתקת הקישור"}
-            </button>
-            <button
-              className="btn btn-ghost"
-              onClick={() =>
-                api
-                  .leaveLeague(league.code)
-                  .then(load)
-                  .catch(() => {})
-              }
-            >
-              יציאה מהליגה
             </button>
           </>
         ) : (
@@ -1125,6 +1120,19 @@ export function LeagueView({ code }: { code: string }) {
       <ErrorLine text={error} />
       {league.members.length > 0 && <Podium rows={league.members} onPhoto={setViewing} />}
       {league.members.length > 3 && <Table rows={league.members.slice(3)} start={4} onPhoto={setViewing} />}
+      {league.isMember && (
+        <button
+          className="btn-link section-h"
+          onClick={() =>
+            api
+              .leaveLeague(league.code)
+              .then(load)
+              .catch(() => {})
+          }
+        >
+          יציאה מהליגה
+        </button>
+      )}
       <Modal open={!!viewing} onClose={() => { setViewing(null); setFlagged(false); }} label="תמונה מהקלפי">
         {viewing?.photo && (
           <div className="moment">
@@ -1132,10 +1140,8 @@ export function LeagueView({ code }: { code: string }) {
               <Icon name="camera" /> {viewing.name} בקלפי
             </h2>
             <img className="proof-img big" src={api.photoUrl(viewing.photo)} alt={`התמונה של ${viewing.name} מהקלפי`} />
-            {viewing.me ? (
-              <p className="hint">זו התמונה שלך.</p>
-            ) : flagged ? (
-              <p className="hint">סומן. שני סימונים מורידים את התמונה ואת הטיפות שלה.</p>
+            {viewing.me ? null : flagged ? (
+              <p className="hint">סומן. שני סימונים מורידים את התמונה ואת הטיפות שלה</p>
             ) : (
               <button className="btn btn-ghost" onClick={() => api.flagPhoto(viewing.photo!).then(() => setFlagged(true)).catch(() => setFlagged(true))}>
                 זו לא תמונה מקלפי
@@ -1340,11 +1346,8 @@ export function Demo() {
             </button>
           </div>
           <div className="row demo-jumps">
-            <button className="btn btn-ghost btn-small" onClick={() => { setPlaying(false); setT(0); }}>
-              הצמיחה
-            </button>
-            <button className="btn btn-ghost btn-small" onClick={() => { setPlaying(false); setT(GROW + 0.001); }}>
-              יום הבחירות
+            <button className="btn-link" onClick={() => { setPlaying(false); setT(GROW + 0.001); }}>
+              לקפוץ ליום הבחירות
             </button>
           </div>
           <label className="slider">
@@ -1371,20 +1374,17 @@ export function Demo() {
               </li>
             ))}
           </ol>
-          <dl className="counters counters-col">
-            <div>
-              <dt>בעץ</dt>
-              <dd>{stats.people}</dd>
-            </div>
-            <div className="gold">
-              <dt>פתקי זהב</dt>
-              <dd>{stats.voted}</dd>
-            </div>
-            <div>
-              <dt>טיפות · {lv.name}</dt>
-              <dd>{stats.pts}</dd>
-            </div>
-          </dl>
+          <p className="demo-stats">
+            <span>
+              <b>{stats.people}</b> בעץ
+            </span>
+            <span className="gold-n">
+              <b>{stats.voted}</b> פתקי זהב
+            </span>
+            <span>
+              <b>{stats.pts}</b> טיפות · {lv.name}
+            </span>
+          </p>
           <Link className="btn btn-ghost" href="/">
             <Icon name="sprout" /> לשתול עץ אמיתי
           </Link>
@@ -1399,7 +1399,6 @@ export function Demo() {
 export function About() {
   return (
     <div className="container page narrow prose">
-      <p className="chip"><Icon name="help" /> איך זה עובד</p>
       <h1>עץ ההצבעה</h1>
       <p>
         יום הבחירות בישראל עדיין עשוי מנייר: מעטפה כחולה, מגש של פתקים, פרגוד מקרטון וקלפי. במשחק הזה הקלפי היא עציץ. ההצטרפות שותלת בה עץ ונותנת לך קישור אישי. מי שמצטרף דרכו הוא ענף בעץ שלך, וגם מי שהוא מזמין. ביום הבחירות, {ELECTION_DATE_LABEL}, כל מי שהצביע לוחץ &quot;הצבעתי&quot;, והפתק שלו מזהיב אצלו ואצל כל מי שמעליו בעץ.
