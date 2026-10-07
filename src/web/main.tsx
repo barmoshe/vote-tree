@@ -52,6 +52,9 @@ const TABS: [string, string, string][] = [
 function App() {
   const path = usePath();
   useEffect(() => {
+    document.body.dataset.route = path; // lets phone styles drop the header on the game screen
+  }, [path]);
+  useEffect(() => {
     // Shared links get their title from the server (it names who sent them); keep it.
     if (/^\/[jlc]\//.test(path)) return;
     document.title = TITLES[path] ? `${TITLES[path]} · עץ ההצבעה` : "עץ ההצבעה";

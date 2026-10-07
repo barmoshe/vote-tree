@@ -3,7 +3,7 @@ import { api, errorText } from "./api";
 import { Link, navigate } from "./router";
 import { LeafChip, Scene } from "./Scene";
 import { demoStory, demoTree, STORY_DAYS } from "./demoTree";
-import { celebrate, Modal } from "./fx";
+import { celebrate, Modal, Sheet, useIsPhone } from "./fx";
 import { Icon } from "./icons";
 import { download, preparePhoto, shareOrDownload, storyCard, voteIcs } from "./share";
 import { ACHIEVEMENTS, LEVELS, POINTS, SPECIES, level, pointsOf } from "../shared/game";
@@ -113,6 +113,16 @@ const sampleVoted = new Set(sample.filter((n) => n.t != null && n.t < 14).map((n
 
 export function Home({ code }: { code?: string }) {
   const { data } = useMe();
+  const phone = useIsPhone();
+  const dock = useRef<HTMLDivElement>(null);
+  const [dockH, setDockH] = useState(0);
+  useEffect(() => {
+    const el = dock.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setDockH(el.getBoundingClientRect().height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phone, data]);
   const pulse = usePulse();
   const [inviter, setInviter] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -137,6 +147,97 @@ export function Home({ code }: { code?: string }) {
       setBusy(false);
     }
   }
+
+  const joinForm = !data ? (
+    <Loading />
+  ) : data.me ? (
+    <Link className="btn btn-big" href="/tree">
+      <Icon name="tree" /> לעץ שלי
+    </Link>
+  ) : (
+    <form className="phone-join" onSubmit={join}>
+      <label htmlFor="pname" className="sr-only">
+        שם תצוגה
+      </label>
+      <input id="pname" value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={24} required autoComplete="nickname" placeholder="שם או כינוי" aria-describedby="pname-hint" />
+      <button className="btn btn-big" disabled={busy}>
+        {busy ? "שותלים…" : <><Icon name="sprout" /> לשתול את העץ שלי</>}
+      </button>
+      <p id="pname-hint" className="hint">
+        בלי טלפון, בלי מייל, בלי סיסמה
+      </p>
+      <ErrorLine text={error} />
+    </form>
+  );
+
+  if (phone)
+    return (
+      <>
+        <section className="phone-home">
+          <Scene
+            nodes={sample}
+            votedAt={(i) => sampleVoted.has(i)}
+            label="עץ של פתקי הצבעה שצומח מתוך קלפי, על גבעות ירושלים: פתקים בתכלת הצטרפו, פתקי זהב הצביעו"
+            levelIndex={3}
+            showNames={false}
+            ballots={sampleVoted.size}
+            stamps={{ voted: true }}
+            crown={0.62}
+            insetBottom={dockH}
+            className="phone-scene"
+          />
+          <div className="phone-home-copy">
+            <p className="chip">
+              <Icon name="ballot" /> בחירות לכנסת · {ELECTION_DATE_LABEL}
+            </p>
+            <h1 className="title">
+              עץ
+              <br />
+              ההצבעה
+            </h1>
+          </div>
+          <div className="phone-dock" ref={dock}>
+            {inviter && (
+              <p className="gift">
+                <Icon name="gift" /> קיבלת שתיל מ־<strong>{inviter}</strong>
+              </p>
+            )}
+            <p className="phone-pitch">מזמינים חברים, וביום הבחירות כל מי שהצביע הופך לפתק זהב בכל העצים שמעליו</p>
+            {joinForm}
+          </div>
+        </section>
+        <section className="container page phone-more">
+          <PulseBar p={pulse} />
+          <ol className="levels-intro" aria-label="איך משחקים">
+            <li>
+              <span className="stage-n">שלב 1 · עכשיו</span>
+              <h3>שותלים ומשקים</h3>
+              <p>טיפה ביום שומרת אותו ירוק</p>
+            </li>
+            <li>
+              <span className="stage-n">שלב 2 · עד הבחירות</span>
+              <h3>מזמינים ומתחרים</h3>
+              <p>כל חבר שמצטרף הוא ענף. ליגה פרטית עם החבר׳ה, ויש גם ליגה ארצית.</p>
+            </li>
+            <li className="gold">
+              <span className="stage-n">שלב 3 · יום הבחירות</span>
+              <h3>מזהיבים</h3>
+              <p>מצביעים, לוחצים &quot;הצבעתי&quot;, וחבר שהיה שם מחתים חותמת עד.</p>
+            </li>
+          </ol>
+          <div className="panel">
+            <h2>
+              <Icon name="drop" /> טיפות
+            </h2>
+            <DropsTable />
+            <p className="hint">הטיפות סמליות: אין פרסים, אין הגרלות ואין שום תמורה</p>
+          </div>
+          <Link className="btn btn-ghost" href="/demo">
+            <Icon name="play" /> יום בחירות שלם בחצי דקה
+          </Link>
+        </section>
+      </>
+    );
 
   return (
     <>
@@ -799,8 +900,166 @@ function useLevelUps(me: Me | null | undefined) {
   return [shown, () => setShown(null)] as const;
 }
 
+
+// ---------- the phone: a full-screen game ----------
+
+type SheetId = "invite" | "vote" | "quests" | "badges" | "more" | null;
+
+function PhoneGame({ data, reload, onPlan }: { data: MeResponse; reload: () => void; onPlan: () => void }) {
+  const me = data.me!;
+  const s = me.stats;
+  const lv = level(me.points);
+  const gold = s.totalVoted + (s.voted ? 1 : 0);
+  const [sheet, setSheet] = useState<SheetId>(null);
+  const [watering, setWatering] = useState(false);
+  const dock = useRef<HTMLDivElement>(null);
+  const [dockH, setDockH] = useState(0);
+  useEffect(() => {
+    const el = dock.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setDockH(el.getBoundingClientRect().height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const voting = data.phase === "open";
+  const openQuests = [s.streak < 7, !s.planned, s.directJoined < 3, s.leagues < 1, s.depth < 3].filter(Boolean).length;
+  const earned = ACHIEVEMENTS.filter((a) => a.done(s)).length;
+
+  async function water() {
+    if (me.wateredToday || data.phase === "after") return;
+    setWatering(true);
+    const r = await api.water().catch(() => null);
+    setWatering(false);
+    if (r && !r.already) celebrate("green");
+    reload();
+  }
+
+  // The one big action changes with the day.
+  const cta =
+    voting && !s.voted
+      ? { label: "הצבעתי", icon: "ballot", cls: "btn-gold", go: () => setSheet("vote") }
+      : s.voted && data.phase !== "after"
+        ? { label: "חותמת עד ותמונה", icon: "stamp", cls: "", go: () => setSheet("vote") }
+        : { label: "להזמין חברים", icon: "sprout", cls: "", go: () => setSheet("invite") };
+
+  return (
+    <div className="phone-game">
+      <Scene
+        className="phone-scene"
+        nodes={me.tree}
+        species={me.species}
+        levelIndex={lv.index}
+        ghosts={Math.max(0, 3 - s.directJoined)}
+        ballots={gold}
+        stamps={{ voted: s.voted, witnessed: s.confirmed }}
+        insetBottom={dockH}
+        label={`העץ של ${me.name}: ${s.totalJoined} אנשים, ${gold} פתקי זהב`}
+      />
+
+      <div className="phone-hud">
+        <button className="hud-chip hud-level" onClick={() => setSheet("badges")} aria-label={`דרגה ${lv.name}, ${me.points} טיפות`}>
+          <Icon name={lv.icon} size={16} />
+          <b>{lv.name}</b>
+          {lv.next && (
+            <span className="hud-meter" aria-hidden="true">
+              <span style={{ width: `${Math.max(6, Math.round(lv.progress * 100))}%` }} />
+            </span>
+          )}
+        </button>
+        <span className="hud-chip">
+          <Icon name="drop" size={14} /> {me.points}
+        </span>
+        <span className="hud-chip">
+          <Icon name="flame" size={14} /> {s.streak}
+        </span>
+        <span className={`hud-chip ${voting ? "hud-today" : ""}`}>
+          <Icon name="ballot" size={14} /> {data.phase === "before" ? `עוד ${data.daysUntil} ימים` : voting ? "היום" : "נגמר"}
+        </span>
+      </div>
+
+      {s.totalJoined > 0 && (
+        <p className="phone-tally">
+          <b>{s.totalJoined}</b> בעץ · <b className="gold-n">{gold}</b> זהב
+        </p>
+      )}
+
+      <div className="phone-dock" ref={dock}>
+        <div className="fabs">
+          <button className={`fab ${me.wateredToday ? "done" : ""}`} onClick={water} disabled={watering || data.phase === "after"}>
+            <span className="fab-icon">
+              <Icon name={me.wateredToday ? "check" : "drop"} size={22} />
+            </span>
+            <span>{me.wateredToday ? "הושקה" : "השקיה"}</span>
+          </button>
+          <button className="fab" onClick={() => setSheet("quests")}>
+            <span className="fab-icon">
+              <Icon name="sparkle" size={22} />
+              {openQuests > 0 && <i className="fab-badge">{openQuests}</i>}
+            </span>
+            <span>משימות</span>
+          </button>
+          <button className="fab" onClick={() => setSheet("badges")}>
+            <span className="fab-icon">
+              <Icon name="medal" size={22} />
+            </span>
+            <span>תגים · {earned}</span>
+          </button>
+          {cta.label !== "להזמין חברים" && (
+            <button className="fab" onClick={() => setSheet("invite")}>
+              <span className="fab-icon">
+                <Icon name="sprout" size={22} />
+              </span>
+              <span>הזמנה</span>
+            </button>
+          )}
+          <button className="fab" onClick={() => setSheet("more")}>
+            <span className="fab-icon">
+              <Icon name="key" size={22} />
+            </span>
+            <span>חשבון</span>
+          </button>
+        </div>
+        <button className={`btn btn-big cta ${cta.cls}`} onClick={cta.go}>
+          <Icon name={cta.icon} size={22} /> {cta.label}
+        </button>
+      </div>
+
+      <Sheet open={sheet === "invite"} onClose={() => setSheet(null)} title="להזמין חברים">
+        <SeedsCard me={me} primary />
+        {voting && <Nudges me={me} />}
+      </Sheet>
+      <Sheet open={sheet === "vote"} onClose={() => setSheet(null)} title={s.voted ? "הוכחות" : "היום בוחרים"}>
+        <VoteCard
+          data={data}
+          onVoted={() => {
+            reload();
+          }}
+        />
+        {voting && <Nudges me={me} />}
+      </Sheet>
+      <Sheet open={sheet === "quests"} onClose={() => setSheet(null)} title="משימות">
+        <Quests me={me} phase={data.phase} onPlan={() => { setSheet(null); onPlan(); }} />
+      </Sheet>
+      <Sheet open={sheet === "badges"} onClose={() => setSheet(null)} title={`${lv.name} · ${me.points} טיפות`}>
+        {lv.next && (
+          <p className="hint">
+            עוד <bdi dir="ltr">{lv.next.at - me.points}</bdi> טיפות ל{lv.next.name}
+          </p>
+        )}
+        <Badges me={me} />
+        <SpeciesPicker me={me} onChanged={reload} />
+      </Sheet>
+      <Sheet open={sheet === "more"} onClose={() => setSheet(null)} title="חשבון">
+        <AccountCard k={me.key} onGone={() => navigate("/", true)} />
+      </Sheet>
+    </div>
+  );
+}
+
 export function MyTree() {
   const { data, reload } = useMe();
+  const phone = useIsPhone();
   const [planOpen, setPlanOpen] = useState(false);
   const [moment, closeMoment] = useLevelUps(data?.me);
   useEffect(() => {
@@ -819,6 +1078,44 @@ export function MyTree() {
   const gold = s.totalVoted + (s.voted ? 1 : 0);
   const unlocked = moment ? SPECIES.find((sp) => sp.level === moment.index) : undefined;
   const voting = data.phase === "open";
+
+  const dialogs = (
+    <>
+      <PlanDialog open={planOpen} onClose={() => setPlanOpen(false)} onSaved={reload} />
+      <Modal open={!!moment} onClose={closeMoment} label={moment?.kind === "welcome" ? "העץ נשתל" : "דרגה חדשה"}>
+        {moment && (
+          <div className="moment">
+            <div className="emblem emblem-big" aria-hidden="true">
+              <Icon name={LEVELS[moment.index].icon} size={54} />
+            </div>
+            {moment.kind === "welcome" ? (
+              <>
+                <h2>שתלת עץ בקלפי!</h2>
+                <p>שלושה פתקים מקווקווים מחכים לחברים הראשונים שלך. מחר משקים שוב.</p>
+                <p className="hint">הקישור הפרטי לחזרה מכל מכשיר נמצא ב&quot;חשבון&quot;</p>
+              </>
+            ) : (
+              <>
+                <h2>עלית דרגה: {LEVELS[moment.index].name}</h2>
+                {unlocked && <p>נפתח עץ חדש: {unlocked.name}, ב&quot;העצים שלי&quot;</p>}
+              </>
+            )}
+            <button className="btn btn-big" onClick={closeMoment}>
+              יאללה
+            </button>
+          </div>
+        )}
+      </Modal>
+    </>
+  );
+
+  if (phone)
+    return (
+      <>
+        <PhoneGame data={data} reload={reload} onPlan={() => setPlanOpen(true)} />
+        {dialogs}
+      </>
+    );
 
   return (
     <div className="container game">
@@ -866,31 +1163,7 @@ export function MyTree() {
         <AccountCard k={me.key} onGone={() => navigate("/", true)} />
       </div>
 
-      <PlanDialog open={planOpen} onClose={() => setPlanOpen(false)} onSaved={reload} />
-      <Modal open={!!moment} onClose={closeMoment} label={moment?.kind === "welcome" ? "העץ נשתל" : "דרגה חדשה"}>
-        {moment && (
-          <div className="moment">
-            <div className="emblem emblem-big" aria-hidden="true">
-              <Icon name={LEVELS[moment.index].icon} size={54} />
-            </div>
-            {moment.kind === "welcome" ? (
-              <>
-                <h2>שתלת עץ בקלפי!</h2>
-                <p>שלושה פתקים מקווקווים מחכים לחברים הראשונים שלך. מחר משקים שוב.</p>
-                <p className="hint">הקישור הפרטי לחזרה מכל מכשיר נמצא בתחתית העמוד</p>
-              </>
-            ) : (
-              <>
-                <h2>עלית דרגה: {LEVELS[moment.index].name}</h2>
-                {unlocked && <p>נפתח עץ חדש: {unlocked.name}, ב&quot;העצים שלי&quot;</p>}
-              </>
-            )}
-            <button className="btn btn-big" onClick={closeMoment}>
-              יאללה
-            </button>
-          </div>
-        )}
-      </Modal>
+      {dialogs}
     </div>
   );
 }
@@ -1233,6 +1506,16 @@ function clock(h: number) {
 }
 
 export function Demo() {
+  const phone = useIsPhone();
+  const dock = useRef<HTMLDivElement>(null);
+  const [dockH, setDockH] = useState(0);
+  useEffect(() => {
+    const el = dock.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setDockH(el.getBoundingClientRect().height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phone]);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const raf = useRef(0);
@@ -1298,6 +1581,84 @@ export function Demo() {
 
   const lv = level(stats.pts);
   const chapter = growing ? (day < 2 ? "שותלים עץ" : day < 9 ? "החברים הראשונים מצטרפים" : "חברים של חברים") : hour < 12 ? "יום הבחירות: בוקר" : hour < 18 ? "יום הבחירות: צהריים" : "יום הבחירות: ערב";
+
+  const playButton = (
+    <button
+      className="btn btn-big"
+      onClick={() => {
+        if (t >= 1) setT(0);
+        setPlaying((p) => !p);
+      }}
+    >
+      <Icon name={playing ? "pause" : t >= 1 ? "replay" : "play"} /> {playing ? "עצירה" : t >= 1 ? "מההתחלה" : t > 0 ? "המשך" : "הפעלה"}
+    </button>
+  );
+  const slider = (
+    <label className="slider">
+      <span className="sr-only">{growing ? "השבועות שלפני" : "השעות של יום הבחירות"}</span>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.002}
+        value={t}
+        onChange={(e) => {
+          setPlaying(false);
+          setT(Number(e.target.value));
+        }}
+        aria-valuetext={growing ? `עוד ${daysLeft} ימים לבחירות` : clock(hour)}
+      />
+    </label>
+  );
+
+  if (phone)
+    return (
+      <div className="phone-game">
+        <Scene
+          className="phone-scene"
+          nodes={nodes}
+          votedAt={votedAt}
+          hour={hour}
+          species="olive"
+          levelIndex={lv.index}
+          ballots={stats.voted}
+          stamps={{ voted: stats.meVoted, witnessed: stats.meVoted && hour > 9 }}
+          showNames={nodes.length <= 40}
+          animate={false}
+          insetBottom={dockH}
+          label={growing ? `העץ ביום ${Math.floor(day)} מתוך ${STORY_DAYS}: ${stats.people} אנשים` : `יום הבחירות בשעה ${clock(hour)}: ${stats.voted} מתוך ${stats.people + 1} הצביעו`}
+        />
+        <div className="phone-hud">
+          <span className={`hud-chip ${growing ? "" : "hud-today"}`}>
+            <Icon name="ballot" size={14} /> {growing ? `עוד ${daysLeft} ימים` : clock(hour)}
+          </span>
+          <span className="hud-chip">
+            <Icon name="tree" size={14} /> {stats.people}
+          </span>
+          <span className="hud-chip">
+            <Icon name="sparkle" size={14} /> {stats.voted}
+          </span>
+          <span className="hud-chip">
+            <Icon name="drop" size={14} /> {stats.pts}
+          </span>
+        </div>
+        <p className="phone-tally">{chapter} · הדגמה, לא נתונים אמיתיים</p>
+        <div className="phone-dock" ref={dock}>
+          {feed[0] && (
+            <p className={`demo-toast ${feed[0].gold ? "gold" : ""}`} aria-live="polite">
+              <Icon name={feed[0].gold ? "ballot" : "sprout"} size={14} /> <b>{feed[0].text}</b> <span>{feed[0].sub}</span>
+            </p>
+          )}
+          {slider}
+          <div className="row demo-row">
+            {playButton}
+            <button className="btn-link" onClick={() => { setPlaying(false); setT(GROW + 0.001); }}>
+              ליום הבחירות
+            </button>
+          </div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="container page demo">

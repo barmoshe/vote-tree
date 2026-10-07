@@ -39,6 +39,7 @@ type Props = {
   ballots?: number;
   stamps?: { voted?: boolean; witnessed?: boolean };
   crown?: number;
+  insetBottom?: number; // CSS pixels of UI over the bottom of the scene
   animate?: boolean;
   className?: string;
 };
@@ -55,6 +56,7 @@ export function Scene({
   ballots = 0,
   stamps,
   crown = 1,
+  insetBottom = 0,
   animate = true,
   className = "",
 }: Props) {
@@ -97,6 +99,7 @@ export function Scene({
       levelIndex,
       stamps,
       crown,
+      inset: Math.ceil(insetBottom / size.s),
     });
     const off = document.createElement("canvas");
     off.width = size.w;
@@ -105,7 +108,7 @@ export function Scene({
     bg.current = off;
     setAnchors(a);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, all, votedKey, Math.floor(h * 2), species, levelIndex, stamps?.voted, stamps?.witnessed, crown]);
+  }, [size, all, votedKey, Math.floor(h * 2), species, levelIndex, stamps?.voted, stamps?.witnessed, crown, insetBottom]);
 
   // A new envelope drops whenever the count rises.
   const [drop, setDrop] = useState(0);

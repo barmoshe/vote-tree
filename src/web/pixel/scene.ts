@@ -95,10 +95,12 @@ export type PaintOpts = {
   levelIndex: number;
   stamps?: { voted?: boolean; witnessed?: boolean };
   crown: number;
+  inset?: number; // art pixels at the bottom covered by UI: the ground and the ballot box sit above them
 };
 
 export function paint(px: Pix, o: PaintOpts): Anchors {
-  const { w: W, h: H } = px;
+  const W = px.w;
+  const H = px.h - (o.inset ?? 0); // the world's floor; fills still run to the canvas bottom
   const [, mood, bands] = skyAt(o.hour);
   const top = bands[0];
   const land = LAND[mood];
