@@ -1,0 +1,76 @@
+/* Tokens for עץ ההצבעה: forest ink on warm paper, leaf green for people who joined,
+ * gold for people who voted. Built on the workshop's oklch token names. */
+
+:root {
+  color-scheme: light;
+  --hue: 158;
+
+  --bg: oklch(0.975 0.014 92);
+  --surface: oklch(0.995 0.006 92);
+  --surface-2: oklch(0.945 0.02 100);
+  --border: oklch(0.87 0.025 110);
+  --text: oklch(0.24 0.045 160);
+  --text-soft: oklch(0.42 0.04 160);
+  --text-faint: oklch(0.56 0.03 150);
+
+  --primary: oklch(0.42 0.09 158);
+  --primary-hover: oklch(0.36 0.085 158);
+  --primary-text: oklch(0.985 0.01 95);
+  --accent: oklch(0.78 0.15 78);
+
+  --leaf: oklch(0.74 0.13 145);
+  --leaf-deep: oklch(0.55 0.12 150);
+  --gold: oklch(0.81 0.155 82);
+  --gold-deep: oklch(0.62 0.14 70);
+  --bark: oklch(0.42 0.05 55);
+  --sky: oklch(0.93 0.035 220);
+
+  --ok: oklch(0.55 0.13 150);
+  --danger: oklch(0.55 0.19 27);
+
+  --font-sans: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Suez One", "Heebo", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --step--1: calc(var(--text-base) / 1.2);
+  --step-0: var(--text-base);
+  --step-1: calc(var(--text-base) * 1.2);
+  --step-2: calc(var(--text-base) * 1.44);
+  --step-3: calc(var(--text-base) * 1.9);
+  --step-4: clamp(2.4rem, 1.6rem + 4vw, 4.4rem);
+  --leading: 1.6;
+  --leading-tight: 1.1;
+
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.5rem; --space-6: 2rem; --space-7: 3rem; --space-8: 4rem; --space-9: 6rem;
+
+  --radius-sm: 0.5rem; --radius: 0.875rem; --radius-lg: 1.375rem; --radius-full: 999px;
+  --shadow-1: 0 1px 2px oklch(0.25 0.04 160 / 0.08);
+  --shadow-2: 0 10px 30px -12px oklch(0.25 0.05 160 / 0.28);
+  --dur-1: 120ms; --dur-2: 240ms; --dur-3: 480ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --measure: 62ch;
+  --container: 68rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: oklch(0.19 0.028 160);
+    --surface: oklch(0.23 0.03 160);
+    --surface-2: oklch(0.27 0.032 160);
+    --border: oklch(0.36 0.03 160);
+    --text: oklch(0.95 0.015 95);
+    --text-soft: oklch(0.8 0.025 120);
+    --text-faint: oklch(0.66 0.025 130);
+    --primary: oklch(0.8 0.12 145);
+    --primary-hover: oklch(0.86 0.11 145);
+    --primary-text: oklch(0.2 0.04 160);
+    --leaf: oklch(0.7 0.12 145);
+    --leaf-deep: oklch(0.6 0.12 150);
+    --bark: oklch(0.62 0.05 60);
+    --sky: oklch(0.25 0.035 220);
+    --shadow-2: 0 10px 30px -12px oklch(0 0 0 / 0.6);
+  }
+}

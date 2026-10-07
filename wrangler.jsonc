@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vote-tree",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-07",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/j/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vote-tree",
+      "database_id": "d19f4f93-f47a-4ac6-b817-5b5f2c5d8042",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": { "VOTING_OPEN": "0" },
+  "observability": { "enabled": true }
+}
