@@ -15,13 +15,16 @@ of value.
 
 | Event | Points |
 |---|---|
+| Watering once a day until election day | +1 |
 | Someone you invited joined | +1 |
+| A voting plan (when, how, with whom) | +3 |
 | You voted | +10 |
+| A friend who was there stamps your vote as witness | +10 |
 | Someone you invited voted | +5 |
 | Someone further down your tree voted | +1 |
 
-Points unlock levels (seed, sprout, sapling, tree, grove, forest), achievements, and a place on the
-leaderboard. Marking a vote opens on 27.10 at 07:00 Israel time and closes at 23:59. It is an honor
+Points unlock levels (pot, sprout, sapling, tree, grove, forest), tree species, achievements, a place
+in the national league and in private leagues anyone can open for their friends. Marking a vote opens on 27.10 at 07:00 Israel time and closes at 23:59. It is an honor
 system: there is no way to check a vote without hurting privacy, and the points are worth nothing
 outside the tree.
 
@@ -35,7 +38,8 @@ One Cloudflare Worker:
 - **API**: [Hono](https://hono.dev) in `src/worker/`, behind `/api/*`.
 - **Database**: Cloudflare D1. A closure table (`ancestry`) holds every ancestor/descendant pair, so
   a whole tree and its totals are one indexed query.
-- **Pages**: a React SPA (Vite) in `src/web/`, served as static assets. `/j/<code>` goes through the
+- **Pages**: a React SPA (Vite) in `src/web/`, served as static assets. The scene is pixel art on a
+  canvas (Resurrect 64 palette by Kerrie Lake) with a vector layer for text, the flag and the ballot box. `/j/<code>` goes through the
   Worker so the WhatsApp preview shows the inviter's name.
 - **Sessions**: an HttpOnly cookie `<id>.<key>`; only a SHA-256 of the key is stored. The personal
   `/restore#<key>` link is the way back in from another device.

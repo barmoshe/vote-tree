@@ -11,7 +11,7 @@ export const POINTS = {
 } as const;
 
 export const LEVELS = [
-  { min: 0, name: "זרע", icon: "seed" },
+  { min: 0, name: "עציץ", icon: "pot" },
   { min: 5, name: "נבט", icon: "sprout" },
   { min: 20, name: "שתיל", icon: "sapling" },
   { min: 50, name: "עץ", icon: "tree" },
@@ -72,7 +72,7 @@ export function pointsOf(s: Pick<Stats, "voted" | "planned" | "confirmed" | "wat
 }
 
 export const ACHIEVEMENTS: { id: string; icon: string; title: string; hint: string; done: (s: Stats) => boolean }[] = [
-  { id: "seed", icon: "seed", title: "זרע ראשון", hint: "הצטרפות לעץ", done: () => true },
+  { id: "planted", icon: "pot", title: "שתילה ראשונה", hint: "הצטרפות לעץ", done: () => true },
   { id: "plan", icon: "map", title: "יש תוכנית", hint: "תוכנית הצבעה: מתי, איך ועם מי", done: (s) => s.planned },
   { id: "water3", icon: "drop", title: "שלושה ימי השקיה", hint: "השקיה שלושה ימים ברצף", done: (s) => s.streak >= 3 },
   { id: "water7", icon: "flame", title: "שבוע של השקיה", hint: "השקיה שבעה ימים ברצף", done: (s) => s.streak >= 7 },

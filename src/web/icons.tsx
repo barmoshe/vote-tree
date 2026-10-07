@@ -6,6 +6,7 @@ const I: Record<string, string[]> = {
   trophy: ["xxxxxxxxx", "x.xxxxx.x", "x.xxxxx.x", ".xxxxxxx.", "...xxx...", "....x....", "....x....", "..xxxxx..", "..xxxxx.."],
   play: ["..x......", "..xx.....", "..xxx....", "..xxxx...", "..xxxxx..", "..xxxx...", "..xxx....", "..xx.....", "..x......"],
   help: ["..xxxxx..", ".xx...xx.", ".....xx..", "....xx...", "...xx....", "...xx....", ".........", "...xx....", "...xx...."],
+  pot: ["....x....", "...xxx...", "..x.x.x..", "....x....", "xxxxxxxxx", ".x.....x.", ".x.....x.", "..x...x..", "..xxxxx.."],
   seed: ["....x....", "...xxx...", "..xxxxx..", "..xxxxx..", ".xxxxxxx.", ".xxxxxxx.", ".xxxxxxx.", "..xxxxx..", "...xxx..."],
   sprout: [".........", "xx.....xx", "xxx...xxx", ".xxx.xxx.", "..xxxxx..", "....x....", "....x....", "....x....", "..xxxxx.."],
   sapling: ["...xxx...", "..xxxxx..", ".xx.x.xx.", "xxx.x.xxx", "....x....", ".xx.x....", "..xxx....", "....x....", "..xxxxx.."],

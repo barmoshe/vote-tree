@@ -521,7 +521,7 @@ async function preview(c: C, title: string | null, desc: string) {
 
 app.get("/j/:code", async (c) => {
   const row = await c.env.DB.prepare("SELECT name FROM users WHERE code = ? AND key_hash != ''").bind(param(c, "code")).first<{ name: string }>();
-  return preview(c, row ? `זרע מ־${row.name}: עץ ההצבעה` : null, "שותלים עץ, מזמינים חברים, וב־27.10 כל מי שהצביע הופך לפתק זהב.");
+  return preview(c, row ? `הזמנה מ־${row.name} לעץ ההצבעה` : null, "שותלים עץ, מזמינים חברים, וב־27.10 כל מי שהצביע הופך לפתק זהב.");
 });
 
 app.get("/l/:code", async (c) => {

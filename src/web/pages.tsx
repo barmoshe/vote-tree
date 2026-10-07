@@ -167,7 +167,7 @@ export function Home({ code }: { code?: string }) {
           <p className="lead">שותלים עץ שצומח מתוך קלפי, מזמינים חברים, וב־{ELECTION_DATE_LABEL} כל מי שהצביע הופך לפתק זהב בכל העצים שמעליו.</p>
           {inviter && (
             <p className="gift">
-              <span aria-hidden="true"><Icon name="gift" /></span> קיבלת זרע מ־<strong>{inviter}</strong>. ההצטרפות מחברת אותך לעץ של {inviter}.
+              <span aria-hidden="true"><Icon name="gift" /></span> קיבלת שתיל מ־<strong>{inviter}</strong>. ההצטרפות מחברת אותך לעץ של {inviter}.
             </p>
           )}
           {!data ? (
@@ -421,7 +421,7 @@ function SeedsCard({ me }: { me: Me }) {
   }
   return (
     <section className="panel seeds" aria-labelledby="seeds-h">
-      <h2 id="seeds-h"><Icon name="seed" /> הזרעים שלך</h2>
+      <h2 id="seeds-h"><Icon name="sprout" /> השתילים שלך</h2>
       <p className="hint">כל מי שמצטרף דרך הקישור הזה הופך לענף בעץ שלך.</p>
       <p className="link-box" dir="ltr">
         {url.replace(/^https?:\/\//, "")}
@@ -528,7 +528,7 @@ function Quests({ me, phase, onPlan }: { me: Me; phase: MeResponse["phase"]; onP
         </button>
       ),
     },
-    { icon: "sprout", title: "שלושה זרעים", sub: "3 חברים מצטרפים דרכך", reward: 3, done: s.directJoined >= 3, progress: [Math.min(3, s.directJoined), 3] },
+    { icon: "sprout", title: "שלושה ענפים", sub: "3 חברים מצטרפים דרכך", reward: 3, done: s.directJoined >= 3, progress: [Math.min(3, s.directJoined), 3] },
     {
       icon: "league",
       title: "ליגה עם החבר׳ה",
@@ -798,7 +798,7 @@ export function MyTree() {
             </div>
             {moment.kind === "welcome" ? (
               <>
-                <h2>שתלת זרע בקלפי!</h2>
+                <h2>שתלת עץ בקלפי!</h2>
                 <p>שלושה פתקים מקווקווים מחכים לחברים הראשונים שלך. ואל תשכחו להשקות מחר.</p>
               </>
             ) : (
