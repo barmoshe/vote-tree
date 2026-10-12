@@ -60,3 +60,7 @@ Deploy with `npm run db:remote` (migrations) and `npm run deploy`. `scripts/og.s
 link-preview image from `/og-card` on a running local server.
 
 Built at the 2026 election hackathon. Not affiliated with any party.
+
+---
+
+Built by [Bar Moshe](https://bar-builds.com/?src=gh-vote-tree)
